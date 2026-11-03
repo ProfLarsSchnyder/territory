@@ -268,7 +268,7 @@ html,body{height:100%;overflow:hidden}
   function cornersOwned(side){return corners.filter(function(i){return board[i].owner===side}).length}
   var BUILDINGS={
     fort:{icon:"🛡",name:"Festung",cost:4,desc:"+3 Verteidigung auf diesem Feld"},
-    barracks:{icon:"⚔",name:"Kaserne",cost:6,desc:"Angriffe verbrauchen keine Stärke auf dem Ausgangsfeld"},
+    barracks:{icon:"⚔",name:"Kaserne",cost:6,desc:"Bei Angriffen 1 Stärke weniger durch Widerstand verlieren"},
     hub:{icon:"🔮",name:"Machtzentrum",cost:7,desc:"+2 Angriff für benachbarte eigene Felder"},
     shield:{icon:"💠",name:"Schildgenerator",cost:7,desc:"+2 Verteidigung für benachbarte eigene Felder"},
     tower:{icon:"🏹",name:"Wachturm",cost:6,desc:"Angriff in gerader Linie aus 2 Feldern Entfernung"}
@@ -326,7 +326,7 @@ html,body{height:100%;overflow:hidden}
     if(type==="attack"){
       // Resistance reduces the arriving strength. Successful attack refunds its action.
       // Example: 5 vs 2 => old field 1, newly conquered field 3.
-      var resistance=dPower(to);
+      var resistance=Math.max(0,dPower(to)-(source.upgrade==="barracks"?1:0));
       source.power=1;
       target.owner=side;target.power=Math.max(1,oldPower-resistance);
       sound(310);
