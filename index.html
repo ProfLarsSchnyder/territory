@@ -125,6 +125,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .inspector{min-height:54px;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:7px 11px;border:1px solid #3e5370;border-radius:13px;background:#1b2b43}
 .inspector b{font-size:12px}.inspector span{font-size:10px;line-height:1.35;color:#b8cce3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 @media(max-height:710px){.inspector{min-height:44px;padding:5px 8px}.action{height:52px}}
+.tile-building{position:absolute;left:2px;bottom:1px;font-size:13px}.tile.warp{border-color:#a57fe6}
 </style>
 </head>
 <body>
@@ -141,7 +142,7 @@ button{font:inherit;color:inherit;cursor:pointer}
   <section class="arena">
     <div class="section-head"><b>SEKTOR 07</b><small><span class="live-dot"></span>GEBIETSKONTROLLE</small></div>
     <div class="board-shell"><div id="board" class="board" role="grid" aria-label="Taktisches Spielfeld mit sieben Spalten und acht Reihen"></div></div>
-    <div class="board-meta"><span>◆ Hauptquartier</span><span>⛏ Mine</span><span>✦ Schatz</span><span>▰ Blockiert</span></div>
+    <div class="board-meta"><span>◆ Hauptquartier</span><span>⛏ Mine</span><span>✦ Schatz</span><span>🌀 Warp</span></div>
   </section>
   <section class="inspector"><b id="inspect-title">Feld antippen</b><span id="inspect-desc">Hier werden Feldboni und Gebäude erklärt.</span></section><section class="status" id="status"><span class="status-orb"></span><div id="status-text" class="status-text" aria-live="polite">Wähle ein eigenes Feld.</div><div id="ap" class="ap-wrap" aria-label="Aktionspunkte"></div></section>
   <section class="control-panel">
@@ -161,7 +162,7 @@ button{font:inherit;color:inherit;cursor:pointer}
   "use strict";
   var COLS=7,ROWS=8,MAX_ROUNDS=15,BOOST_COST=2;
   var rocks=[15,19,24,31,36,40];
-  var mines=[17,38],treasures=[22,33];
+  var mines=[17,38],treasures=[22,33],warps=[9,20,35,46];
   var board=[],mode="ai",turn=1,round=1,ap=1,maxAp=1,selected=null,inspected=null,action="expand",coins={1:8,2:8};
   var locked=false,pendingTurn=false,gameOver=false,lastMove=-1,mute=true,audio=null,timer=null,gameToken=0,aiHasSpent=false;
   var els={board:document.getElementById("board"),overlay:document.getElementById("overlay"),modal:document.getElementById("modal"),toast:document.getElementById("toast")};
@@ -171,30 +172,63 @@ button{font:inherit;color:inherit;cursor:pointer}
   function distance(a,b){var x=getXY(a),y=getXY(b);return Math.abs(x.r-y.r)+Math.abs(x.c-y.c)}
   function count(side){return board.filter(function(t){return t.owner===side}).length}
   function strengths(side){return board.reduce(function(n,t){return n+(t.owner===side?t.power:0)},0)}
+  var BUILDINGS={
+    fort:{icon:"🛡",name:"Festung",cost:4,desc:"+3 Verteidigung auf diesem Feld"},
+    barracks:{icon:"⚔",name:"Kaserne",cost:6,desc:"Angriffe verbrauchen keine Stärke auf dem Ausgangsfeld"},
+    hub:{icon:"🔮",name:"Machtzentrum",cost:7,desc:"+2 Angriff für benachbarte eigene Felder"},
+    shield:{icon:"💠",name:"Schildgenerator",cost:7,desc:"+2 Verteidigung für benachbarte eigene Felder"},
+    tower:{icon:"🏹",name:"Wachturm",cost:6,desc:"Angriff in gerader Linie aus 2 Feldern Entfernung"}
+  };
+  function myWarps(side){return board.map(function(t,i){return t.owner===side&&t.special==="warp"?i:-1}).filter(function(i){return i>=0})}
+  function boostPrice(i,side){return BOOST_COST*(board[i].special==="warp"?myWarps(side).length:1)}
+  function aPower(i){var t=board[i];return t.power+(neighbors(i).some(function(k){return board[k].owner===t.owner&&board[k].upgrade==="hub"})?2:0)}
+  function dPower(i){var t=board[i];return t.power+(t.upgrade==="fort"?3:0)+(neighbors(i).some(function(k){return board[k].owner===t.owner&&board[k].upgrade==="shield"})?2:0)}
+  function reach(i,type,side){
+    var result=neighbors(i),p=getXY(i);
+    if(board[i].special==="warp")myWarps(side).forEach(function(k){if(k!==i)result=result.concat(neighbors(k))});
+    if(type==="attack"&&board[i].upgrade==="tower"){
+      [[0,1],[0,-1],[1,0],[-1,0]].forEach(function(d){
+        var r=p.r+2*d[0],c=p.c+2*d[1],mr=p.r+d[0],mc=p.c+d[1];
+        if(r<0||r>=ROWS||c<0||c>=COLS)return;
+        var mid=board[mr*COLS+mc];
+        if(!mid.rock&&mid.owner!==3-side)result.push(r*COLS+c);
+      });
+    }
+    return Array.from(new Set(result));
+  }
+  function buildTargets(i,id,side){
+    if(board[i].special!=="warp")return board[i].upgrade?[]:[i];
+    var own=myWarps(side);
+    if(own.some(function(k){return board[k].upgrade&&board[k].upgrade!==id}))return [];
+    return own.filter(function(k){return !board[k].upgrade});
+  }
   function income(side){return 2+board.reduce(function(n,t){return n+(t.owner===side&&t.special==="mine"?t.mineLevel:0)},0)}
   function mineCost(level){return [0,3,5,8][level]||Infinity}
   function playerName(side){return side===1?(mode==="local"?"BLAU":"DU"):(mode==="local"?"ROT":"KI")}
   function humanTurn(){return !locked&&!pendingTurn&&!gameOver&&(turn===1||mode==="local")}
   function showToast(msg){els.toast.textContent=msg;els.toast.classList.add("show");clearTimeout(timer);timer=setTimeout(function(){els.toast.classList.remove("show")},1800)}
   function sound(freq){if(mute)return;try{audio=audio||new(window.AudioContext||window.webkitAudioContext)();var o=audio.createOscillator(),g=audio.createGain();o.type="sine";o.frequency.setValueAtTime(freq,audio.currentTime);o.frequency.exponentialRampToValueAtTime(freq*.67,audio.currentTime+.13);g.gain.setValueAtTime(.055,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+.18);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+.18)}catch(e){}}
-  function init(){gameToken++;board=Array.from({length:COLS*ROWS},function(_,i){return {owner:0,power:0,rock:rocks.indexOf(i)>=0,special:mines.includes(i)?"mine":treasures.includes(i)?"treasure":null,mineLevel:1,claimed:false,base:0,upgrade:null}});
+  function init(){gameToken++;board=Array.from({length:COLS*ROWS},function(_,i){return {owner:0,power:0,rock:rocks.indexOf(i)>=0,special:mines.includes(i)?"mine":treasures.includes(i)?"treasure":warps.includes(i)?"warp":null,mineLevel:1,claimed:false,base:0,upgrade:null}});
     board[43].owner=1;board[43].power=3;board[43].base=1;
     board[12].owner=2;board[12].power=3;board[12].base=2;
     coins={1:8,2:8};turn=1;round=1;selected=null;inspected=null;action="expand";locked=false;pendingTurn=false;gameOver=false;aiHasSpent=false;lastMove=-1;startAp();render();
   }
   function startAp(){pendingTurn=false;ap=(round===1&&turn===1)?1:2;maxAp=ap;aiHasSpent=false;if(!(round===1&&turn===1))coins[turn]+=income(turn)}
   function availableTargets(from,type,side){if(from===null||!board[from]||board[from].owner!==side)return[];
-    return neighbors(from).filter(function(i){var t=board[i];if(t.rock)return false;if(type==="expand")return t.owner===0;if(type==="attack")return t.owner!==0&&t.owner!==side&&board[from].power>t.power;return false})}
+    return reach(from,type,side).filter(function(i){var t=board[i];if(t.rock)return false;if(type==="expand")return t.owner===0;if(type==="attack")return t.owner!==0&&t.owner!==side&&aPower(from)>dPower(i);return false})}
   function canMove(side,from,to,type){return board[from]&&board[from].owner===side&&availableTargets(from,type,side).indexOf(to)>=0}
   function move(side,from,to,type){
     if(gameOver||pendingTurn)return false;
     if(type==="boost"){
-      if(!board[from]||board[from].owner!==side||coins[side]<BOOST_COST)return false;
-      coins[side]-=BOOST_COST;board[from].power++;lastMove=from;sound(480);render();return true;
+      if(!board[from]||board[from].owner!==side||coins[side]<boostPrice(from,side))return false;
+      coins[side]-=boostPrice(from,side);
+      if(board[from].special==="warp")myWarps(side).forEach(function(k){board[k].power++});
+      else board[from].power++;
+      lastMove=from;inspected=from;sound(480);render();return true;
     }
     if(ap<=0||!canMove(side,from,to,type))return false;
     var target=board[to];
-    if(type==="attack"){board[from].power=Math.max(1,board[from].power-1);target.owner=side;target.power=1;sound(310)}
+    if(type==="attack"){if(board[from].upgrade!=="barracks")board[from].power=Math.max(1,board[from].power-1);target.owner=side;target.power=1;sound(310)}
     else{target.owner=side;target.power=1;sound(720)}
     lastMove=to;inspected=to;
     if(target.special==="treasure"&&!target.claimed){target.claimed=true;coins[side]+=5;showToast("Schatz gefunden: +5 Münzen!")}
@@ -217,10 +251,10 @@ button{font:inherit;color:inherit;cursor:pointer}
     var html="";
     board.forEach(function(t,i){
       var owner=t.owner===1?"player":t.owner===2?"enemy":"neutral";
-      var cls="tile "+(t.rock?"rock":owner)+(selected===i&&humanTurn()?" selected":"")+(inspected===i&&!pendingTurn?" inspected":"")+(valid.indexOf(i)>=0?" legal":"")+(lastMove===i?" flash":"");
-      var specialIcon=t.special==="mine"?"⛏":t.special==="treasure"?"✦":"";
-      var inside=t.rock?"":'<span class="tile-power">'+(t.owner?t.power:"·")+'</span>'+(specialIcon?'<span class="tile-energy">'+specialIcon+(t.special==="mine"&&t.mineLevel>1?'<sup>'+t.mineLevel+'</sup>':"")+'</span>':"")+(t.base?'<span class="tile-base">◆</span>':"");
-      var label=t.rock?"Felsen":owner+", Stärke "+t.power+(t.special?", "+(t.special==="mine"?"Mine Stufe "+t.mineLevel:"Schatzfeld"):"")+(t.base?", Hauptquartier":"");
+      var cls="tile "+(t.rock?"rock":owner)+(t.special==="warp"?" warp":"")+(selected===i&&humanTurn()?" selected":"")+(inspected===i&&!pendingTurn?" inspected":"")+(valid.indexOf(i)>=0?" legal":"")+(lastMove===i?" flash":"");
+      var specialIcon=t.special==="mine"?"⛏":t.special==="treasure"?"✦":t.special==="warp"?"🌀":"";
+      var inside=t.rock?"":'<span class="tile-power">'+(t.owner?t.power:"·")+'</span>'+(specialIcon?'<span class="tile-energy">'+specialIcon+(t.special==="mine"&&t.mineLevel>1?'<sup>'+t.mineLevel+'</sup>':"")+'</span>':"")+(t.base?'<span class="tile-base">◆</span>':"")+(t.upgrade?'<span class="tile-building">'+BUILDINGS[t.upgrade].icon+'</span>':"");
+      var label=t.rock?"Felsen":owner+", Stärke "+t.power+(t.special?", "+(t.special==="mine"?"Mine Stufe "+t.mineLevel:t.special==="warp"?"Warpfeld":"Schatzfeld"):"")+(t.base?", Hauptquartier":"");
       html+='<button type="button" class="'+cls+'" data-i="'+i+'" aria-label="'+label+'" '+(t.rock?'disabled':'')+'>'+inside+'</button>';
     });
     els.board.innerHTML=html;
@@ -247,7 +281,7 @@ button{font:inherit;color:inherit;cursor:pointer}
     var ownMine=selected!==null&&board[selected].owner===turn&&board[selected].special==="mine"&&humanTurn();
     mineBtn.hidden=!ownMine;
     if(ownMine){var cost=mineCost(board[selected].mineLevel);mineBtn.textContent=isFinite(cost)?"⛏ Mine verbessern · "+cost+" 🪙":"⛏ Mine Stufe 4 (Max.)";mineBtn.disabled=!isFinite(cost)||coins[turn]<cost}
-    byId("end-turn").disabled=!humanTurn();byId("build").disabled=!humanTurn();renderInspector();
+    byId("end-turn").disabled=!humanTurn();byId("build").disabled=!humanTurn();byId("boost-cost").textContent=(selected!==null&&board[selected].owner===turn?boostPrice(selected,turn):2)+" 🪙";renderInspector();
   }
   function clickTile(i){
     if(!humanTurn()){inspected=i;render();return}
@@ -262,7 +296,7 @@ button{font:inherit;color:inherit;cursor:pointer}
     if(!humanTurn())return;
     action="boost";
     if(selected===null){showToast("Wähle zuerst ein eigenes Feld.");render();return}
-    if(!move(turn,selected,null,"boost")){showToast("Verstärken kostet 2 Münzen. Prüfe dein Guthaben.");render();return}
+    if(!move(turn,selected,null,"boost")){showToast("Verstärken kostet "+boostPrice(selected,turn)+" Münzen.");render();return}
   }
   function chooseAction(a){if(!humanTurn())return;if(a==="boost"){boost();return}action=a;render()}
   function renderInspector(){
@@ -270,8 +304,8 @@ button{font:inherit;color:inherit;cursor:pointer}
     if(!t){title.textContent="Feld antippen";desc.textContent="Hier werden Spezialboni und Gebäude erklärt.";return}
     var p=getXY(inspected),pos=String.fromCharCode(65+p.c)+(p.r+1);
     title.textContent=pos+" · "+(t.rock?"Felsen":t.owner===0?"Neutral":t.owner===1?"Blau":"Rot")+(t.base?" · Basis":"");
-    var bonus=t.special==="mine"?"⛏ Mine Stufe "+t.mineLevel+": +"+t.mineLevel+" Münzen pro Zug. ":t.special==="treasure"?(t.claimed?"✦ Schatz schon eingesammelt. ":"✦ Schatz: einmalig 5 Münzen bei erster Eroberung. "):"";
-    desc.textContent=t.rock?"Unpassierbares Feld.":bonus+(t.owner?"Stärke "+t.power+". ":"Freies Feld. ")+(t.upgrade?"Gebäude vorhanden.":"");
+    var bonus=t.special==="mine"?"⛏ Mine Stufe "+t.mineLevel+": +"+t.mineLevel+" Münzen pro Zug. ":t.special==="treasure"?(t.claimed?"✦ Schatz schon eingesammelt. ":"✦ Schatz: einmalig 5 Münzen bei erster Eroberung. "):t.special==="warp"?"🌀 Warpfeld: Alle eigenen Warpfelder sind verbunden. Eroberungen und Angriffe über das Netzwerk. Verstärken und Bauen gelten für alle mit Kosten pro Feld. ":"";
+    desc.textContent=t.rock?"Unpassierbares Feld.":bonus+(t.owner?"Stärke "+t.power+", Angriff "+aPower(inspected)+", Verteidigung "+dPower(inspected)+". ":"Freies Feld. ")+(t.upgrade?BUILDINGS[t.upgrade].name+": "+BUILDINGS[t.upgrade].desc+".":"");
   }
   function openBuild(){showToast("Wähle ein Feld zum Bauen.");}
   function scheduleNext(){var token=gameToken,side=turn;setTimeout(function(){if(gameToken===token&&turn===side&&!locked&&!gameOver&&pendingTurn)nextTurn()},390)}
@@ -298,10 +332,10 @@ button{font:inherit;color:inherit;cursor:pointer}
     var list=[];
     board.forEach(function(t,i){if(t.owner!==2)return;
       neighbors(i).forEach(function(j){var q=board[j];if(q.rock)return;
-        if(q.owner===0){var sc=3.4+Math.max(0,9-distance(j,43))*.20+(q.special==="mine"?4.6:q.special==="treasure"&&!q.claimed?3.8:0);
+        if(q.owner===0){var sc=3.4+Math.max(0,9-distance(j,43))*.20+(q.special==="mine"?4.6:q.special==="warp"?4.5:q.special==="treasure"&&!q.claimed?3.8:0);
           if(neighbors(j).some(function(k){return board[k].owner===1}))sc+=.7;
           list.push({type:"expand",from:i,to:j,score:sc+Math.random()*1.5})}
-        else if(q.owner===1&&t.power>q.power){list.push({type:"attack",from:i,to:j,score:10+(q.base?120:0)+(q.special==="mine"?5:0)+Math.random()*2})}
+        else if(q.owner===1&&aPower(i)>dPower(j)){list.push({type:"attack",from:i,to:j,score:10+(q.base?120:0)+(q.special==="mine"?5:0)+Math.random()*2})}
       });
 
     });
