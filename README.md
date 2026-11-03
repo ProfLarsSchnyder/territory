@@ -1,30 +1,33 @@
 # Territory Clash 🎮
 
-Ein schnelles, kostenloses Handy-Strategiespiel mit taktischem Raster und Neon-Optik. Komplett ohne Framework oder externe Abhängigkeiten. Der gesamte Spielcode liegt in `index.html`.
+Ein mobiles Strategiespiel mit KI und lokalem Zweispielermodus. Komplett ohne Framework, der Spielcode liegt in `index.html`.
 
-## Online spielen mit GitHub Pages
+## Online spielen
 
-1. Im Repository **Settings → Pages** öffnen.
-2. Unter **Build and deployment** die Quelle **Deploy from a branch** wählen.
-3. Branch **main**, Ordner **/(root)**, danach **Save**.
-4. Sobald GitHub Pages veröffentlicht hat, ist das Spiel unter **https://proflarsschnyder.github.io/territory/** erreichbar.
+GitHub Pages in **Settings → Pages → Deploy from a branch → main / (root)** aktivieren.
 
-Du kannst `index.html` auch direkt in einem Browser öffnen.
+Nach der Veröffentlichung: https://proflarsschnyder.github.io/territory/
 
-## Regeln
+## Aktuelles Regelwerk
 
-- **Erobern**: Eigenes Feld wählen, dann ein angrenzendes neutrales Feld antippen. Kosten: 1 Aktion.
-- **Angreifen**: Ein eigenes Feld wählen, Angriff aktivieren, schwächeres feindliches Nachbarfeld antippen. Das eigene Feld verliert 1 Stärke, das eroberte Feld erhält Stärke 1.
-- **Verstärken**: Ausgewähltes eigenes Feld um 1 Stärke erhöhen, maximal Stärke 5. Kosten: 1 Aktion.
-- **Zugfolge**: Blau macht zu Spielbeginn genau 1 Aktion, danach Rot 2 Aktionen. Anschliessend machen beide abwechselnd genau 2 Aktionen. Jeder Zug endet automatisch nach der letzten Aktion.
-- **Kraftfelder (ϟ)**: Wer ein neutrales Kraftfeld erobert, erhält dieses direkt mit Stärke 2 statt 1. Kraftfelder geben keine weiteren Aktionen.
-- **Sieg**: Gegners Hauptquartier erobern oder nach 15 Runden mehr Felder kontrollieren. Bei Gleichstand entscheidet die Summe der Feldstärken.
+- **Runden**: Blau beginnt die Partie mit 1 Kampfaktion, danach erhalten Rot und Blau abwechselnd jeweils 2 Kampfaktionen pro Zug.
+- **Kampfaktionen**: Ein angrenzendes neutrales Feld erobern oder ein angrenzendes schwächeres gegnerisches Feld angreifen. Nur diese Aktionen zählen zum Zuglimit. Nach Verbrauch aller Kampfaktionen erfolgt automatisch der Spielerwechsel.
+- **Stärke**: Jedes Feld besitzt eine Stärke. Beim Angriff muss die Stärke des Angreifers diejenige des Ziels übertreffen. Der Angreifer verliert 1 Stärke, das eroberte Feld beginnt mit Stärke 1.
+- **Münzen**: Beide starten mit 8 Münzen und erhalten ab ihrem nächsten Zug 2 Münzen Grundeinkommen je Zug. Münzen sind die einzige Ressource.
+- **Verstärken**: Eigenes Feld auswählen, dann **Verstärken**. Jede Verstärkung kostet 2 Münzen und gibt +1 Stärke. Es gibt weder ein Stärkelimit noch ein Limit für solche Käufe je Zug, nur der Münzvorrat begrenzt sie.
+- **Mine (⛏)**: Bringt jede eigene Runde Münzen, anfänglich 1 pro Zug. Die Mine kann bis Stufe 4 ausgebaut werden. Kosten für die Stufen 2, 3, 4: 3, 5, 8 Münzen. Der Ausbau verbraucht keine Kampfaktion.
+- **Schatz (✦)**: Bringt bei der ersten Eroberung 5 Münzen, unabhängig davon, wer ihn zuerst entdeckt. Anschliessende Rückeroberungen zahlen nicht erneut.
+- **Sieg**: Wer das gegnerische Hauptquartier erobert, gewinnt sofort. Ansonsten gewinnt nach 15 Runden die Seite mit der höheren **Gesamtstärke** (Summe aller eigenen Feldstärken). Gleichstand ergibt Unentschieden. Keine separaten Siegpunkte.
 
 ## Spielmodi
 
-- Gegen die KI
-- Zwei Spieler am gleichen Handy
+- Gegen die einfache KI
+- Zwei Spieler auf demselben Handy
+
+## Noch in Diskussion, nicht implementiert
+
+Baubare Upgrades: Festung, Kaserne, Machtzentrum, Schildgenerator und ein noch auszuwählendes Reichweitenupgrade. Weitere Spezialfelder werden erst nach der Auswahl ergänzt.
 
 ## Technik
 
-Reines HTML, CSS und JavaScript, Touch-Bedienung, skalierbares Hochformat und kleine Soundeffekte. Das Balancing und die KI können nach ersten Testspielen weiter angepasst werden.
+HTML, CSS, Vanilla JavaScript. Mobile-First im Hochformat mit Touch-Steuerung.
