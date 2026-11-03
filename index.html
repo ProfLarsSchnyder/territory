@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#080d1c">
+<meta name="description" content="Territory Clash: Ein schnelles taktisches Strategiespiel für dein Handy.">
+<title>Territory Clash</title>
+<style>
+:root{color-scheme:dark;--bg:#080e1e;--surface:#101a30;--line:#263651;--cyan:#4de5ec;--blue:#2678ff;--coral:#ff755f;--violet:#ad91ff;--ink:#eef6ff;--muted:#8494b2;--good:#63f5ba}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;margin:0;overflow:hidden;background:var(--bg);font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);touch-action:manipulation}
+body:before{content:"";position:fixed;inset:-20%;z-index:0;background:radial-gradient(ellipse at 14% 14%,#21406b70 0,transparent 38%),radial-gradient(ellipse at 90% 65%,#47234555 0,transparent 38%),radial-gradient(ellipse at 48% 94%,#16486c33 0,transparent 42%);pointer-events:none;animation:ambience 14s ease-in-out infinite alternate}
+body:after{content:"";position:fixed;inset:0;opacity:.16;background-image:linear-gradient(#aacfff14 1px,transparent 1px),linear-gradient(90deg,#aacfff14 1px,transparent 1px);background-size:38px 38px;pointer-events:none}
+@keyframes ambience{to{transform:translate(3%, -3%) scale(1.07)}}
+button{font:inherit;color:inherit;cursor:pointer}
+.app{isolation:isolate;position:relative;z-index:1;max-width:510px;margin:auto;height:100dvh;min-height:0;padding:calc(env(safe-area-inset-top) + 13px) 16px calc(env(safe-area-inset-bottom) + 10px);display:flex;flex-direction:column;justify-content:space-between;gap:8px}
+.topbar,.section-head,.board-meta,.bottom-top{display:flex;align-items:center;justify-content:space-between}
+.topbar{min-height:39px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-mark{width:35px;height:35px;display:grid;place-items:center;background:linear-gradient(145deg,#43e7e5,#3274fe);border-radius:11px;color:#071020;font-size:23px;font-weight:1000;box-shadow:0 5px 20px #20c6f75c;transform:rotate(-8deg)}
+.brand-word{font-weight:950;letter-spacing:.11em;font-size:16px}
+.brand-word em{font-style:normal;color:var(--cyan)}
+.brand-sub{font-size:9px;text-transform:uppercase;letter-spacing:.29em;color:var(--muted);margin-top:3px;font-weight:700}
+.top-actions{display:flex;gap:7px}
+.icon-btn{width:36px;height:36px;border:1px solid #354767;background:#111c32e0;border-radius:12px;display:grid;place-items:center;font-size:17px;transition:transform .18s,background .18s}
+.icon-btn:active{transform:scale(.92);background:#253a59}
+.score-row{display:grid;grid-template-columns:1fr 62px 1fr;gap:7px;min-height:80px}
+.scorecard{position:relative;overflow:hidden;background:linear-gradient(140deg,#122944dd,#11192bd9);border:1px solid #31577b;border-radius:17px;padding:11px 10px;display:flex;flex-direction:column;gap:5px}
+.scorecard.enemy{background:linear-gradient(140deg,#351f36dd,#18172add);border-color:#785069;text-align:right}
+.scorecard.current{box-shadow:0 0 0 1px #49d5ecaa,0 0 18px #39d6ff20}
+.scorecard.enemy.current{box-shadow:0 0 0 1px #fd927eaa,0 0 18px #ff746b20}
+.score-title{font-size:10px;letter-spacing:.13em;font-weight:900;color:#74ddec;text-transform:uppercase;white-space:nowrap}
+.enemy .score-title{color:#ff9c85}
+.score-number{font-size:27px;font-weight:950;line-height:1;letter-spacing:-.065em;font-variant-numeric:tabular-nums}
+.score-caption{font-size:10px;color:#9cacc4;font-weight:650}
+.round-box{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.round-box span{font-size:9px;letter-spacing:.12em;font-weight:850;color:#7b8ca9}
+.round-box strong{font-size:24px;font-weight:950;font-variant-numeric:tabular-nums}
+.round-box small{font-size:10px;color:#7889a5}
+.arena{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:0;flex:1;gap:8px}
+.section-head{width:100%;max-width:440px}
+.section-head b{font-size:10px;letter-spacing:.2em;color:#bccadd}
+.section-head small{font-size:10px;font-weight:750;color:var(--muted)}
+.live-dot{display:inline-block;background:var(--good);width:6px;height:6px;margin-right:6px;border-radius:50%;box-shadow:0 0 10px var(--good)}
+.board-shell{width:min(calc(100vw - 36px), calc((100dvh - 321px) * .875), 438px);max-width:100%;aspect-ratio:7/8;padding:7px;background:linear-gradient(140deg,#2d4160aa,#141e33 55%,#4a31545e);border:1px solid #3b4e6a;border-radius:22px;box-shadow:0 18px 45px #020613bf,0 0 30px #2678ff19,inset 0 1px #bcdcff2e;position:relative}
+.board-shell:before,.board-shell:after{position:absolute;content:"";pointer-events:none;z-index:2;width:28px;height:28px;border-color:#5ce4ef;opacity:.7}
+.board-shell:before{top:-4px;left:-4px;border-top:2px solid;border-left:2px solid;border-radius:22px 0 0 0}
+.board-shell:after{right:-4px;bottom:-4px;border-right:2px solid;border-bottom:2px solid;border-radius:0 0 22px 0}
+.board{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));gap:4px;width:100%;height:100%}
+.tile{min-width:0;min-height:0;border:1px solid #34435c;background:linear-gradient(160deg,#24324b,#19253c);border-radius:clamp(6px,2vw,11px);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:0;box-shadow:inset 0 1px #d0e9ff10;transition:transform .16s,border-color .16s,filter .16s,box-shadow .16s}
+.tile:active:not(:disabled){transform:scale(.91)}
+.tile.neutral{background:linear-gradient(150deg,#26334b,#1c283e)}
+.tile.player{background:linear-gradient(150deg,#159dbf,#126397 65%,#163e7c);border-color:#55dff1a6;box-shadow:inset 0 1px #ffffff55,0 0 10px #2fd8ef17}
+.tile.enemy{background:linear-gradient(150deg,#df7261,#b84f66 58%,#723863);border-color:#ffaf91a6;box-shadow:inset 0 1px #ffffff55,0 0 10px #fc6c7617}
+.tile.rock{background:repeating-linear-gradient(140deg,#192235,#192235 6px,#1b283b 6px,#1b283b 12px);border-color:#29364a;cursor:default}
+.tile.rock:after{content:"";width:18%;height:18%;background:#667a96;opacity:.5;transform:rotate(45deg);border:1px solid #b5c6da}
+.tile.selected{border-color:#e6fbff;box-shadow:0 0 0 2px #e4fcff,0 0 21px #4ce4eb9f,inset 0 1px #ffffff77;z-index:1;transform:scale(1.045)}
+.tile.legal{border-color:#f4ffffaa;box-shadow:inset 0 0 0 1px #edfaff46,0 0 14px #4de5ec4e;animation:hint 1.45s ease-in-out infinite}
+.tile.legal.enemy{box-shadow:inset 0 0 0 1px #ffeddc55,0 0 17px #ff78675c}
+@keyframes hint{50%{filter:brightness(1.35)}}
+.tile.flash{animation:pop .43s ease-out}
+@keyframes pop{0%{transform:scale(.68);filter:brightness(2.5)}60%{transform:scale(1.14)}100%{transform:scale(1)}}
+.tile-power{position:relative;font-size:clamp(14px,4.7vw,23px);font-weight:950;text-shadow:0 2px 8px #0d163462;line-height:1;font-variant-numeric:tabular-nums}
+.tile.neutral .tile-power{color:#51637f;font-size:17px}
+.tile-energy{position:absolute;top:2px;right:3px;color:#f7d56c;font-size:clamp(9px,2.5vw,13px);filter:drop-shadow(0 0 5px #ffc654)}
+.tile-base{position:absolute;top:2px;left:3px;color:#fff5c2;font-size:clamp(9px,2.5vw,12px)}
+.tile.player .tile-power,.tile.enemy .tile-power{color:#fff}
+.board-meta{max-width:440px;width:100%;font-size:10px;letter-spacing:.01em;color:#8798b2;font-weight:700}
+.board-meta strong{color:#f8d277}
+.status{min-height:47px;background:#111c31c9;border:1px solid #293a55;border-radius:13px;display:flex;align-items:center;gap:9px;padding:9px 11px}
+.status-orb{width:9px;height:9px;flex-shrink:0;border-radius:50%;background:var(--cyan);box-shadow:0 0 13px var(--cyan)}
+.status.enemy-turn .status-orb{background:var(--coral);box-shadow:0 0 13px var(--coral)}
+.status-text{flex:1;min-width:0;font-size:11px;font-weight:720;color:#d9e7f7;line-height:1.3}
+.ap-wrap{display:flex;gap:4px}
+.ap-pip{width:8px;height:16px;border-radius:3px;background:#2b3b58}
+.ap-pip.filled{background:linear-gradient(#72fcf1,#2cb7d1);box-shadow:0 0 8px #40e8f45e}
+.status.enemy-turn .ap-pip.filled{background:linear-gradient(#ffc0a6,#f16c72);box-shadow:0 0 8px #ff7f6c60}
+.control-panel{background:#111c30e8;border:1px solid #2a3b54;border-radius:18px;padding:10px;box-shadow:0 10px 30px #05091669}
+.bottom-top{margin:0 2px 9px;font-size:10px;color:#a3b4ca;font-weight:850}
+.bottom-top strong{color:#f7fbff;letter-spacing:.07em;font-size:10px}
+.action-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.action{height:58px;border:1px solid #364962;background:linear-gradient(160deg,#1c304b,#17253e);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;font-weight:840;transition:background .15s,transform .15s,border-color .15s}
+.action .glyph{font-size:19px;line-height:1}
+.action.on{background:linear-gradient(155deg,#164e71,#193256);border-color:#56dbea;box-shadow:inset 0 0 0 1px #4ddef82c,0 0 18px #2dc6ed22}
+.action.attack.on{background:linear-gradient(155deg,#694050,#38253a);border-color:#ff9583;box-shadow:0 0 18px #ff74631a}
+.action.boost.on{background:linear-gradient(155deg,#554875,#292749);border-color:#c7aaff}
+.action:active{transform:scale(.96)}
+.action:disabled{opacity:.45}
+.footbar{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:9px}
+.end-btn{font-size:11px;letter-spacing:.07em;font-weight:900;color:#aabed7;border:0;background:none;padding:3px 12px}
+.end-btn:disabled{opacity:.3}
+.toast{position:fixed;top:calc(env(safe-area-inset-top) + 62px);left:50%;transform:translate(-50%,-12px);background:#f2f8ff;color:#10243e;border-radius:14px;padding:11px 17px;font-weight:850;font-size:12px;max-width:calc(100vw - 44px);text-align:center;opacity:0;transition:all .2s;pointer-events:none;z-index:30;box-shadow:0 8px 30px #0008}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.modal-shell{position:fixed;inset:0;z-index:20;background:#030916d9;backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:center;padding:20px}
+.modal-shell.hidden{display:none}
+.modal{max-width:400px;width:100%;position:relative;overflow:hidden;border:1px solid #43607f;background:linear-gradient(160deg,#172c49,#101b31 53%,#281d35);padding:26px 23px;border-radius:27px;box-shadow:0 25px 75px #000b,0 0 60px #2c87ec28;text-align:center}
+.modal:before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 0%,#39dcfc24,transparent 54%)}
+.modal>*{position:relative}
+.hero-emblem{width:84px;height:84px;margin:0 auto 16px;border-radius:25px;background:linear-gradient(145deg,#53f2df,#386eff 75%);display:grid;place-items:center;transform:rotate(-9deg);box-shadow:0 12px 35px #37baff4e,inset 0 2px #ffffff88}
+.hero-emblem span{font-size:58px;color:#071327;font-weight:1000;transform:rotate(9deg);line-height:1}
+.eyebrow{font-size:10px;color:#81e7ed;letter-spacing:.28em;font-weight:950;margin-bottom:7px}
+.modal h1{font-size:clamp(30px,8vw,40px);margin:0 0 6px;letter-spacing:-.055em;font-weight:1000}
+.modal h1 span{color:#63e9e8}
+.modal p{font-size:13px;line-height:1.65;color:#acbed4;margin:11px 0 22px}
+.hero-facts{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin:0 0 22px}
+.hero-facts span{font-size:10px;color:#a8d8e9;background:#132e49;border:1px solid #2d5878;border-radius:99px;padding:7px 9px;font-weight:850}
+.primary-btn,.secondary-btn{width:100%;height:52px;border-radius:14px;font-size:14px;font-weight:950;letter-spacing:.01em}
+.primary-btn{background:linear-gradient(110deg,#5cebdc,#43a2f6);border:0;color:#071a2c;box-shadow:0 8px 22px #4fdbf537}
+.secondary-btn{margin-top:9px;border:1px solid #4b5d78;background:#1d2c45;color:#e3eefa}
+.primary-btn:active,.secondary-btn:active{transform:scale(.98)}
+.modal .fine{font-size:10px;color:#7d91a9;margin:16px 0 0}
+.rules{text-align:left;font-size:13px;line-height:1.55;color:#c7d7e9;display:grid;gap:12px;margin:20px 0}
+.rules div{background:#1b304a;border:1px solid #324b68;border-radius:13px;padding:11px 12px}
+.rules b{color:#6fe6ed}
+.result-score{font-size:37px;font-weight:950;letter-spacing:-.04em;margin:17px 0;color:#a5f0f6}
+.result-score small{font-size:14px;color:#89a2bb}
+@media(max-height:710px){.app{gap:5px;padding-top:calc(env(safe-area-inset-top) + 7px);padding-bottom:calc(env(safe-area-inset-bottom) + 5px)}.score-row{min-height:67px}.scorecard{padding:8px}.score-number{font-size:23px}.section-head{display:none}.arena{gap:5px}.board-shell{width:min(calc(100vw - 36px),calc((100dvh - 318px) * .875),438px)}.status{min-height:40px;padding:6px 10px}.control-panel{padding:7px}.bottom-top{margin-bottom:6px}.action{height:49px}.footbar{margin-top:4px}}
+@media(max-height:610px){.brand-sub,.board-meta,.footbar{display:none}.board-shell{width:min(calc(100vw - 36px),calc((100dvh - 260px) * .875),438px)}.score-row{min-height:55px}.score-caption{display:none}.scorecard{justify-content:center}.status{min-height:34px}.action{height:45px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="topbar">
+    <div class="brand"><div class="brand-mark">T</div><div><div class="brand-word">TERRITORY <em>CLASH</em></div><div class="brand-sub">Tactical Grid Warfare</div></div></div>
+    <div class="top-actions"><button class="icon-btn" id="sound" aria-label="Ton ein- oder ausschalten" title="Ton">♪</button><button class="icon-btn" id="info" aria-label="Spielregeln" title="Regeln">?</button><button class="icon-btn" id="restart" aria-label="Neues Spiel" title="Neues Spiel">↻</button></div>
+  </header>
+  <section class="score-row" aria-label="Spielstand">
+    <div class="scorecard current" id="player-card"><span class="score-title" id="p-name">◆ DU</span><strong class="score-number" id="p-count">1</strong><span class="score-caption">kontrollierte Felder</span></div>
+    <div class="round-box"><span>RUNDE</span><strong id="round">01</strong><small>/ 15</small></div>
+    <div class="scorecard enemy" id="enemy-card"><span class="score-title" id="e-name">KI ◆</span><strong class="score-number" id="e-count">1</strong><span class="score-caption">kontrollierte Felder</span></div>
+  </section>
+  <section class="arena">
+    <div class="section-head"><b>SEKTOR 07</b><small><span class="live-dot"></span>GEBIETSKONTROLLE</small></div>
+    <div class="board-shell"><div id="board" class="board" role="grid" aria-label="Taktisches Spielfeld mit sieben Spalten und acht Reihen"></div></div>
+    <div class="board-meta"><span>◆ Hauptquartier</span><span><strong>ϟ</strong> Energiefeld: +1 Aktion</span><span>▰ Blockiert</span></div>
+  </section>
+  <section class="status" id="status"><span class="status-orb"></span><div id="status-text" class="status-text" aria-live="polite">Wähle ein eigenes Feld.</div><div id="ap" class="ap-wrap" aria-label="Aktionspunkte"></div></section>
+  <section class="control-panel">
+    <div class="bottom-top"><strong id="turn-label">DEIN ZUG</strong><span id="ap-label">3 AKTIONEN ÜBRIG</span></div>
+    <div class="action-grid">
+      <button class="action on" id="expand"><span class="glyph">✧</span><span>Erobern</span></button>
+      <button class="action attack" id="attack"><span class="glyph">⚔</span><span>Angreifen</span></button>
+      <button class="action boost" id="boost"><span class="glyph">⬡</span><span>Verstärken</span></button>
+    </div>
+    <div class="footbar"><button class="end-btn" id="end-turn">ZUG BEENDEN ›</button></div>
+  </section>
+</main>
+<div class="toast" id="toast" role="status"></div>
+<div class="modal-shell" id="overlay"><div class="modal" id="modal"></div></div>
+<script>
+(function(){
+  "use strict";
+  var COLS=7,ROWS=8,MAX_ROUNDS=15,MAX_POWER=5;
+  var rocks=[15,19,24,36,40]; // fixed obstacles, symmetric around centre
+  var energy=[17,22,33,38];
+  var board=[],mode="ai",turn=1,round=1,ap=3,maxAp=3,selected=null,action="expand";
+  var locked=false,gameOver=false,lastMove=-1,mute=true,audio=null,timer=null;
+  var els={board:document.getElementById("board"),overlay:document.getElementById("overlay"),modal:document.getElementById("modal"),toast:document.getElementById("toast")};
+  function byId(id){return document.getElementById(id)}
+  function getXY(i){return {r:Math.floor(i/COLS),c:i%COLS}}
+  function neighbors(i){var p=getXY(i),a=[];if(p.r>0)a.push(i-COLS);if(p.r<ROWS-1)a.push(i+COLS);if(p.c>0)a.push(i-1);if(p.c<COLS-1)a.push(i+1);return a}
+  function distance(a,b){var x=getXY(a),y=getXY(b);return Math.abs(x.r-y.r)+Math.abs(x.c-y.c)}
+  function count(side){return board.filter(function(t){return t.owner===side}).length}
+  function strengths(side){return board.reduce(function(n,t){return n+(t.owner===side?t.power:0)},0)}
+  function extraAp(side){return board.some(function(t){return t.owner===side&&t.energy})?1:0}
+  function playerName(side){return side===1?(mode==="local"?"BLAU":"DU"):(mode==="local"?"ROT":"KI")}
+  function humanTurn(){return !locked&&!gameOver&&(turn===1||mode==="local")}
+  function showToast(msg){els.toast.textContent=msg;els.toast.classList.add("show");clearTimeout(timer);timer=setTimeout(function(){els.toast.classList.remove("show")},1800)}
+  function sound(freq){if(mute)return;try{audio=audio||new(window.AudioContext||window.webkitAudioContext)();var o=audio.createOscillator(),g=audio.createGain();o.type="sine";o.frequency.setValueAtTime(freq,audio.currentTime);o.frequency.exponentialRampToValueAtTime(freq*.67,audio.currentTime+.13);g.gain.setValueAtTime(.055,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+.18);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+.18)}catch(e){}}
+  function init(){board=Array.from({length:COLS*ROWS},function(_,i){return {owner:0,power:0,rock:rocks.indexOf(i)>=0,energy:energy.indexOf(i)>=0,base:0}});
+    board[43].owner=1;board[43].power=3;board[43].base=1;
+    board[12].owner=2;board[12].power=3;board[12].base=2;
+    turn=1;round=1;selected=null;action="expand";locked=false;gameOver=false;lastMove=-1;startAp();render();
+  }
+  function startAp(){ap=3+extraAp(turn);maxAp=ap}
+  function availableTargets(from,type,side){if(from===null||!board[from]||board[from].owner!==side)return[];
+    return neighbors(from).filter(function(i){var t=board[i];if(t.rock)return false;if(type==="expand")return t.owner===0;if(type==="attack")return t.owner!==0&&t.owner!==side&&board[from].power>t.power;return false})}
+  function canMove(side,from,to,type){return board[from]&&board[from].owner===side&&availableTargets(from,type,side).indexOf(to)>=0}
+  function move(side,from,to,type){
+    if(ap<=0||gameOver)return false;
+    if(type==="boost"){if(!board[from]||board[from].owner!==side||board[from].power>=MAX_POWER)return false;board[from].power++;lastMove=from;sound(480)}
+    else{if(!canMove(side,from,to,type))return false;
+      var target=board[to];if(type==="attack"){board[from].power=Math.max(1,board[from].power-1);target.owner=side;target.power=1;sound(310)}
+      else{target.owner=side;target.power=1;sound(720)}
+      lastMove=to;
+      if(target.base&&target.base!==side){ap--;selected=null;render();finish(side,"HQ");return true}
+    }
+    ap--;if(side===turn&&type==="expand")selected=to;
+    if(side===turn&&type==="attack")selected=from;
+    render();return true;
+  }
+  function render(){
+    var valid=humanTurn()?availableTargets(selected,action,turn):[];
+    var html="";
+    board.forEach(function(t,i){
+      var owner=t.owner===1?"player":t.owner===2?"enemy":"neutral";
+      var cls="tile "+(t.rock?"rock":owner)+(selected===i?" selected":"")+(valid.indexOf(i)>=0?" legal":"")+(lastMove===i?" flash":"");
+      var inside=t.rock?"":'<span class="tile-power">'+(t.owner?t.power:"·")+'</span>'+(t.energy?'<span class="tile-energy">ϟ</span>':"")+(t.base?'<span class="tile-base">◆</span>':"");
+      var label=t.rock?"Felsen":owner+", Stärke "+t.power+(t.energy?", Energie":"")+(t.base?", Hauptquartier":"");
+      html+='<button type="button" class="'+cls+'" data-i="'+i+'" aria-label="'+label+'" '+(t.rock?'disabled':'')+'>'+inside+'</button>';
+    });
+    els.board.innerHTML=html;
+    byId("p-count").textContent=count(1);byId("e-count").textContent=count(2);byId("round").textContent=String(Math.min(round,MAX_ROUNDS)).padStart(2,"0");
+    byId("p-name").textContent="◆ "+(mode==="ai"?"DU":"BLAU");
+    byId("e-name").textContent=(mode==="ai"?"KI":"ROT")+" ◆";
+    byId("player-card").classList.toggle("current",turn===1&&!gameOver);
+    byId("enemy-card").classList.toggle("current",turn===2&&!gameOver);
+    byId("status").classList.toggle("enemy-turn",turn===2);
+    var st="";
+    if(gameOver)st="Partie beendet";
+    else if(locked)st="Gegner denkt nach ...";
+    else if(selected===null)st=playerName(turn)+": Wähle eines deiner Felder.";
+    else if(action==="expand")st="Tippe auf ein markiertes Nachbarfeld.";
+    else if(action==="attack")st="Wähle ein schwächeres gegnerisches Feld.";
+    else st="Verstärke dein ausgewähltes Feld.";
+    byId("status-text").textContent=st;
+    byId("ap").innerHTML=Array.from({length:maxAp},function(_,i){return '<span class="ap-pip '+(i<ap?"filled":"")+'"></span>'}).join("");
+    byId("ap-label").textContent=ap+" AKTION"+(ap===1?"":"EN")+" ÜBRIG";
+    byId("turn-label").textContent=gameOver?"SPIEL BEENDET":locked?"KI DENKT NACH":(turn===1?"BLAU AM ZUG":"ROT AM ZUG");
+    ["expand","attack","boost"].forEach(function(type){var b=byId(type);b.classList.toggle("on",action===type);b.disabled=!humanTurn()||ap<=0});
+    byId("end-turn").disabled=!humanTurn();
+  }
+  function clickTile(i){
+    if(!humanTurn())return;
+    var t=board[i];
+    if(t.owner===turn){selected=i;render();if(action==="boost")boost();return}
+    if(selected===null){showToast("Wähle zuerst eines deiner Felder.");return}
+    if(action==="boost"){showToast("Wähle ein eigenes Feld zum Verstärken.");return}
+    if(!move(turn,selected,i,action)){showToast(action==="expand"?"Nur angrenzende freie Felder!":"Angriff nur von stärkerem Nachbarfeld!");return}
+    if(!gameOver&&ap<=0)setTimeout(nextTurn,390);
+  }
+  function boost(){
+    if(!humanTurn())return;
+    action="boost";
+    if(selected===null){showToast("Wähle zuerst ein eigenes Feld.");render();return}
+    if(!move(turn,selected,null,"boost")){showToast("Maximale Stärke bereits erreicht!");render();return}
+    if(ap<=0)setTimeout(nextTurn,390);
+  }
+  function chooseAction(a){if(!humanTurn())return;if(a==="boost"){boost();return}action=a;render()}
+  function nextTurn(){
+    if(gameOver||locked)return;
+    selected=null;action="expand";
+    if(turn===1){turn=2;startAp();if(mode==="ai"){locked=true;render();setTimeout(aiStep,520)}else render()}
+    else{round++;if(round>MAX_ROUNDS){endByScore();return}turn=1;startAp();render()}
+  }
+  function endByScore(){
+    var p=count(1),e=count(2),s1=strengths(1),s2=strengths(2),winner=p===e?(s1===s2?0:(s1>s2?1:2)):(p>e?1:2);
+    finish(winner,"score");
+  }
+  function finish(winner,reason){
+    gameOver=true;locked=false;render();sound(winner===1?930:330);
+    var title=winner===0?"UNENTSCHIEDEN":winner===1?"BLAU SIEGT!":(mode==="ai"?"DIE KI SIEGT!":"ROT SIEGT!");
+    var detail=reason==="HQ"?"Das gegnerische Hauptquartier wurde erobert.":"Nach 15 Runden entscheidet die Gebietskontrolle.";
+    var sub=winner===0?"Beide Seiten sind gleich stark.":(winner===1?"Das Feld gehört dir!":(mode==="ai"?"Nächstes Mal holst du dir das Feld.":"Rote Fraktion dominiert."));
+    showModal('<div class="eyebrow">MATCH COMPLETE</div><div class="hero-emblem"><span>'+(winner===1?"★":winner===2?"✦":"=")+'</span></div><h1>'+title+'</h1><p>'+detail+'<br>'+sub+'</p><div class="result-score">'+count(1)+' <small>:</small> '+count(2)+'</div><button class="primary-btn" id="play-again">NOCHMAL SPIELEN</button><button class="secondary-btn" id="switch-mode">MODUS WECHSELN</button>');
+    byId("play-again").addEventListener("click",function(){hideModal();init()});
+    byId("switch-mode").addEventListener("click",welcome);
+  }
+  function aiCandidates(){
+    var list=[];
+    board.forEach(function(t,i){if(t.owner!==2)return;
+      neighbors(i).forEach(function(j){var q=board[j];if(q.rock)return;
+        if(q.owner===0){var sc=3.4+Math.max(0,9-distance(j,43))*.20+(q.energy?4.6:0);
+          if(neighbors(j).some(function(k){return board[k].owner===1}))sc+=.7;
+          list.push({type:"expand",from:i,to:j,score:sc+Math.random()*1.5})}
+        else if(q.owner===1&&t.power>q.power){list.push({type:"attack",from:i,to:j,score:10+(q.base?120:0)+(q.energy?5:0)+Math.random()*2})}
+      });
+      if(t.power<MAX_POWER){var edge=neighbors(i).filter(function(j){return !board[j].rock&&board[j].owner===1});
+        var frontier=neighbors(i).some(function(j){return !board[j].rock&&board[j].owner!==2});
+        var bonus=edge.length?4.3+(t.power<=board[edge[0]].power?2.3:0):frontier?1.2:0;
+        var danger=edge.some(function(j){return board[j].power>=t.power});
+        if(danger)bonus+=2;
+        list.push({type:"boost",from:i,to:null,score:bonus+(t.base?1.3:0)+Math.random()*1.3})}
+    });
+    list.sort(function(a,b){return b.score-a.score});return list;
+  }
+  function aiStep(){
+    if(gameOver)return;
+    var possible=aiCandidates(),best=possible[0];
+    if(ap<=0||!best){locked=false;nextTurn();return}
+    move(2,best.from,best.to,best.type);
+    if(gameOver)return;
+    setTimeout(aiStep,410);
+  }
+  function showModal(content){els.modal.innerHTML=content;els.overlay.classList.remove("hidden")}
+  function hideModal(){els.overlay.classList.add("hidden")}
+  function welcome(){
+    showModal('<div class="hero-emblem"><span>T</span></div><div class="eyebrow">CONQUER THE GRID</div><h1>TERRITORY <span>CLASH</span></h1><p>Eine Karte. Zwei Fraktionen. Übernimm das Spielfeld und besiege deinen Gegner in 15 schnellen Runden.</p><div class="hero-facts"><span>✧ Ausbreiten</span><span>⚔ Angreifen</span><span>⬡ Verstärken</span></div><button class="primary-btn" id="start-ai">⚡ GEGEN KI SPIELEN</button><button class="secondary-btn" id="start-local">2 SPIELER · EIN HANDY</button><div class="fine">Tipp: Erobere ϟ Energiefelder für zusätzliche Aktionen.</div>');
+    byId("start-ai").addEventListener("click",function(){mode="ai";init();hideModal()});
+    byId("start-local").addEventListener("click",function(){mode="local";init();hideModal()});
+  }
+  function rules(){
+    showModal('<div class="eyebrow">SO FUNKTIONIERT ES</div><h1>SPIEL<span>REGELN</span></h1><div class="rules"><div><b>✧ Erobern:</b> Eigenes Feld antippen, dann ein angrenzendes freies Feld. Kostet 1 Aktion.</div><div><b>⚔ Angreifen:</b> Eigenes Feld wählen, Angriff aktivieren, schwächeres feindliches Nachbarfeld erobern. Die Stärke des Angreifers sinkt um 1.</div><div><b>⬡ Verstärken:</b> Eigenes Feld wählen und auf Verstärken tippen. +1 Stärke bis maximal 5.</div><div><b>◆ Sieg:</b> Erobere das fremde Hauptquartier oder kontrolliere nach 15 Runden mehr Felder. <b>ϟ Energiefeld:</b> Gibt dir 1 zusätzliche Aktion pro Zug, sobald du mindestens eines besitzt.</div></div><button class="primary-btn" id="rules-close">VERSTANDEN</button>');
+    byId("rules-close").addEventListener("click",hideModal);
+  }
+  els.board.addEventListener("click",function(e){var cell=e.target.closest("[data-i]");if(cell)clickTile(Number(cell.dataset.i))});
+  byId("expand").addEventListener("click",function(){chooseAction("expand")});
+  byId("attack").addEventListener("click",function(){chooseAction("attack")});
+  byId("boost").addEventListener("click",function(){chooseAction("boost")});
+  byId("end-turn").addEventListener("click",nextTurn);
+  byId("info").addEventListener("click",rules);
+  byId("restart").addEventListener("click",welcome);
+  byId("sound").addEventListener("click",function(){mute=!mute;this.textContent=mute?"♪":"♫";this.style.color=mute?"":"#5ff6df";sound(670)});
+  document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!els.overlay.classList.contains("hidden"))hideModal()});
+  init();welcome();
+})();
+</script>
+</body>
+</html>
