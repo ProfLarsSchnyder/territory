@@ -119,7 +119,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .result-score{font-size:37px;font-weight:950;letter-spacing:-.04em;margin:17px 0;color:#a5f0f6}
 .result-score small{font-size:14px;color:#89a2bb}
 @media(max-height:710px){.app{gap:5px;padding-top:calc(env(safe-area-inset-top) + 7px);padding-bottom:calc(env(safe-area-inset-bottom) + 5px)}.score-row{min-height:67px}.scorecard{padding:8px}.score-number{font-size:23px}.section-head{display:none}.arena{gap:5px}.board-shell{width:min(calc(100vw - 36px),calc((100dvh - 318px) * .875),438px)}.status{min-height:40px;padding:6px 10px}.control-panel{padding:7px}.bottom-top{margin-bottom:6px}.action{height:49px}.footbar{margin-top:4px}}
-@media(max-height:610px){.brand-sub,.board-meta,.footbar{display:none}.board-shell{width:min(calc(100vw - 36px),calc((100dvh - 260px) * .875),438px)}.score-row{min-height:55px}.score-caption{display:none}.scorecard{justify-content:center}.status{min-height:34px}.action{height:45px}}
+@media(max-height:610px){.brand-sub,.board-meta{display:none}.footbar{margin-top:2px}.board-shell{width:min(calc(100vw - 36px),calc((100dvh - 280px) * .875),438px)}.score-row{min-height:55px}.score-caption{display:none}.scorecard{justify-content:center}.status{min-height:34px}.action{height:45px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
 </head>
@@ -130,9 +130,9 @@ button{font:inherit;color:inherit;cursor:pointer}
     <div class="top-actions"><button class="icon-btn" id="sound" aria-label="Ton ein- oder ausschalten" title="Ton">♪</button><button class="icon-btn" id="info" aria-label="Spielregeln" title="Regeln">?</button><button class="icon-btn" id="restart" aria-label="Neues Spiel" title="Neues Spiel">↻</button></div>
   </header>
   <section class="score-row" aria-label="Spielstand">
-    <div class="scorecard current" id="player-card"><span class="score-title" id="p-name">◆ DU</span><strong class="score-number" id="p-count">3</strong><span class="score-caption" id="p-meta">🪙 8 · 1 Feld</span></div>
+    <div class="scorecard current" id="player-card"><span class="score-title" id="p-name">◆ DU · STÄRKE</span><strong class="score-number" id="p-count">3</strong><span class="score-caption" id="p-meta">🪙 8 · 1 Feld</span></div>
     <div class="round-box"><span>RUNDE</span><strong id="round">01</strong><small>/ 15</small></div>
-    <div class="scorecard enemy" id="enemy-card"><span class="score-title" id="e-name">KI ◆</span><strong class="score-number" id="e-count">3</strong><span class="score-caption" id="e-meta">🪙 8 · 1 Feld</span></div>
+    <div class="scorecard enemy" id="enemy-card"><span class="score-title" id="e-name">STÄRKE · KI ◆</span><strong class="score-number" id="e-count">3</strong><span class="score-caption" id="e-meta">🪙 8 · 1 Feld</span></div>
   </section>
   <section class="arena">
     <div class="section-head"><b>SEKTOR 07</b><small><span class="live-dot"></span>GEBIETSKONTROLLE</small></div>
@@ -220,9 +220,9 @@ button{font:inherit;color:inherit;cursor:pointer}
       html+='<button type="button" class="'+cls+'" data-i="'+i+'" aria-label="'+label+'" '+(t.rock?'disabled':'')+'>'+inside+'</button>';
     });
     els.board.innerHTML=html;
-    byId("p-count").textContent=strengths(1);byId("e-count").textContent=strengths(2);byId("p-meta").textContent="🪙 "+coins[1]+" · "+count(1)+" Felder";byId("e-meta").textContent="🪙 "+coins[2]+" · "+count(2)+" Felder";byId("round").textContent=String(Math.min(round,MAX_ROUNDS)).padStart(2,"0");
-    byId("p-name").textContent="◆ "+(mode==="ai"?"DU":"BLAU");
-    byId("e-name").textContent=(mode==="ai"?"KI":"ROT")+" ◆";
+    byId("p-count").textContent=strengths(1);byId("e-count").textContent=strengths(2);byId("p-meta").textContent="🪙 "+coins[1]+" · "+count(1)+(count(1)===1?" Feld":" Felder");byId("e-meta").textContent="🪙 "+coins[2]+" · "+count(2)+(count(2)===1?" Feld":" Felder");byId("round").textContent=String(Math.min(round,MAX_ROUNDS)).padStart(2,"0");
+    byId("p-name").textContent="◆ "+(mode==="ai"?"DU":"BLAU")+" · STÄRKE";
+    byId("e-name").textContent="STÄRKE · "+(mode==="ai"?"KI":"ROT")+" ◆";
     byId("player-card").classList.toggle("current",turn===1&&!gameOver);
     byId("enemy-card").classList.toggle("current",turn===2&&!gameOver);
     byId("status").classList.toggle("enemy-turn",turn===2);
