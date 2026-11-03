@@ -180,6 +180,7 @@ button{font:inherit;color:inherit;cursor:pointer}
     shield:{icon:"💠",name:"Schildgenerator",cost:7,desc:"+2 Verteidigung für benachbarte eigene Felder"},
     tower:{icon:"🏹",name:"Wachturm",cost:6,desc:"Angriff in gerader Linie aus 2 Feldern Entfernung"}
   };
+  function ownSelection(){return selected!==null&&board[selected]&&board[selected].owner===turn}
   function myWarps(side){return board.map(function(t,i){return t.owner===side&&t.special==="warp"?i:-1}).filter(function(i){return i>=0})}
   function boostPrice(i,side){return BOOST_COST*(board[i].special==="warp"?myWarps(side).length:1)}
   function aPower(i){var t=board[i];return t.power+(neighbors(i).some(function(k){return board[k].owner===t.owner&&board[k].upgrade==="hub"})?2:0)}
