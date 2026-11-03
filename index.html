@@ -126,6 +126,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .inspector b{font-size:12px}.inspector span{font-size:10px;line-height:1.35;color:#b8cce3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 @media(max-height:710px){.inspector{min-height:44px;padding:5px 8px}.action{height:52px}}
 .tile-building{position:absolute;left:2px;bottom:1px;font-size:13px}.tile.warp{border-color:#a57fe6}
+.build-list{display:grid;gap:7px;margin:12px 0;text-align:left}.build-item{display:flex;align-items:center;gap:8px;width:100%;min-height:64px;background:#1d314b;border:1px solid #425b79;border-radius:13px;padding:10px;text-align:left}.build-item:disabled{opacity:.4}.build-ico{width:30px;font-size:23px}.build-copy{flex:1;min-width:0}.build-copy b{display:block;font-size:12px}.build-copy small{display:block;font-size:10px;color:#b6cce2;line-height:1.4}.build-item>strong{font-size:12px;white-space:nowrap;color:#ffe08a}.build-note{font-size:11px!important;margin:8px 0!important}.inspect-more{align-self:flex-start;background:transparent;border:0;color:#8fdee9;font-size:11px;font-weight:850;padding:1px 0;margin-top:1px}
 </style>
 </head>
 <body>
@@ -144,7 +145,7 @@ button{font:inherit;color:inherit;cursor:pointer}
     <div class="board-shell"><div id="board" class="board" role="grid" aria-label="Taktisches Spielfeld mit sieben Spalten und acht Reihen"></div></div>
     <div class="board-meta"><span>◆ Hauptquartier</span><span>⛏ Mine</span><span>✦ Schatz</span><span>🌀 Warp</span></div>
   </section>
-  <section class="inspector"><b id="inspect-title">Feld antippen</b><span id="inspect-desc">Hier werden Feldboni und Gebäude erklärt.</span></section><section class="status" id="status"><span class="status-orb"></span><div id="status-text" class="status-text" aria-live="polite">Wähle ein eigenes Feld.</div><div id="ap" class="ap-wrap" aria-label="Aktionspunkte"></div></section>
+  <section class="inspector"><b id="inspect-title">Feld antippen</b><span id="inspect-desc">Hier werden Feldboni und Gebäude erklärt.</span><button class="inspect-more" id="inspect-more" aria-label="Alle Feldinformationen">ⓘ Details</button></section><section class="status" id="status"><span class="status-orb"></span><div id="status-text" class="status-text" aria-live="polite">Wähle ein eigenes Feld.</div><div id="ap" class="ap-wrap" aria-label="Aktionspunkte"></div></section>
   <section class="control-panel">
     <div class="bottom-top"><strong id="turn-label">DEIN ZUG</strong><span id="ap-label">1 AKTION ÜBRIG</span></div>
     <div class="action-grid">
@@ -255,7 +256,7 @@ button{font:inherit;color:inherit;cursor:pointer}
       var specialIcon=t.special==="mine"?"⛏":t.special==="treasure"?"✦":t.special==="warp"?"🌀":"";
       var inside=t.rock?"":'<span class="tile-power">'+(t.owner?t.power:"·")+'</span>'+(specialIcon?'<span class="tile-energy">'+specialIcon+(t.special==="mine"&&t.mineLevel>1?'<sup>'+t.mineLevel+'</sup>':"")+'</span>':"")+(t.base?'<span class="tile-base">◆</span>':"")+(t.upgrade?'<span class="tile-building">'+BUILDINGS[t.upgrade].icon+'</span>':"");
       var label=t.rock?"Felsen":owner+", Stärke "+t.power+(t.special?", "+(t.special==="mine"?"Mine Stufe "+t.mineLevel:t.special==="warp"?"Warpfeld":"Schatzfeld"):"")+(t.base?", Hauptquartier":"");
-      html+='<button type="button" class="'+cls+'" data-i="'+i+'" aria-label="'+label+'" '+(t.rock?'disabled':'')+'>'+inside+'</button>';
+      html+='<button type="button" class="'+cls+'" data-i="'+i+'" aria-label="'+label+'" '+''+'>'+inside+'</button>';
     });
     els.board.innerHTML=html;
     byId("p-count").textContent=strengths(1);byId("e-count").textContent=strengths(2);byId("p-meta").textContent=count(1)+" Felder";byId("e-meta").textContent=count(2)+" Felder";byId("p-money").textContent="🪙 "+coins[1];byId("e-money").textContent="🪙 "+coins[2];byId("round").textContent=String(Math.min(round,MAX_ROUNDS)).padStart(2,"0");
@@ -281,7 +282,7 @@ button{font:inherit;color:inherit;cursor:pointer}
     var ownMine=selected!==null&&board[selected].owner===turn&&board[selected].special==="mine"&&humanTurn();
     mineBtn.hidden=!ownMine;
     if(ownMine){var cost=mineCost(board[selected].mineLevel);mineBtn.textContent=isFinite(cost)?"⛏ Mine verbessern · "+cost+" 🪙":"⛏ Mine Stufe 4 (Max.)";mineBtn.disabled=!isFinite(cost)||coins[turn]<cost}
-    byId("end-turn").disabled=!humanTurn();byId("build").disabled=!humanTurn();byId("boost-cost").textContent=(selected!==null&&board[selected].owner===turn?boostPrice(selected,turn):2)+" 🪙";renderInspector();
+    byId("end-turn").disabled=!humanTurn();byId("build").disabled=!humanTurn();byId("boost-cost").textContent=(selected!==null&&board[selected].owner===turn?boostPrice(selected,turn):2)+" 🪙";if(selected!==null&&board[selected].owner===turn&&coins[turn]<boostPrice(selected,turn))byId("boost").disabled=true;renderInspector();
   }
   function clickTile(i){
     if(!humanTurn()){inspected=i;render();return}
@@ -307,7 +308,27 @@ button{font:inherit;color:inherit;cursor:pointer}
     var bonus=t.special==="mine"?"⛏ Mine Stufe "+t.mineLevel+": +"+t.mineLevel+" Münzen pro Zug. ":t.special==="treasure"?(t.claimed?"✦ Schatz schon eingesammelt. ":"✦ Schatz: einmalig 5 Münzen bei erster Eroberung. "):t.special==="warp"?"🌀 Warpfeld: Alle eigenen Warpfelder sind verbunden. Eroberungen und Angriffe über das Netzwerk. Verstärken und Bauen gelten für alle mit Kosten pro Feld. ":"";
     desc.textContent=t.rock?"Unpassierbares Feld.":bonus+(t.owner?"Stärke "+t.power+", Angriff "+aPower(inspected)+", Verteidigung "+dPower(inspected)+". ":"Freies Feld. ")+(t.upgrade?BUILDINGS[t.upgrade].name+": "+BUILDINGS[t.upgrade].desc+".":"");
   }
-  function openBuild(){showToast("Wähle ein Feld zum Bauen.");}
+  function openBuild(){
+    if(!humanTurn())return;
+    if(!ownSelection()){showToast("Wähle zuerst ein eigenes Feld, dann BAUEN.");return}
+    var t=board[selected],p=getXY(selected),pos=String.fromCharCode(65+p.c)+(p.r+1);
+    var html='<div class="eyebrow">WERKSTATT · '+pos+'</div><h1>GEBÄUDE <span>BAUEN</span></h1><p>🪙 Guthaben: '+coins[turn]+'. Pro Feld ist genau ein Gebäude erlaubt. Bauen verbraucht keine Kampfaktion.</p>';
+    html+='<div class="build-list">'+Object.keys(BUILDINGS).map(function(id){
+      var u=BUILDINGS[id],fields=buildTargets(selected,id,turn),cost=u.cost*fields.length,can=fields.length>0&&coins[turn]>=cost;
+      return '<button type="button" class="build-item" data-build="'+id+'" '+(can?"":"disabled")+'><span class="build-ico">'+u.icon+'</span><span class="build-copy"><b>'+u.name+'</b><small>'+u.desc+'</small></span><strong>'+(cost||u.cost)+' 🪙</strong></button>';
+    }).join("")+'</div>';
+    if(t.special==="warp")html+='<p class="build-note">🌀 Alle kontrollierten Warpfelder bilden ein Netzwerk. Gebäude werden auf jedes noch freie Warpfeld übertragen. Der Preis gilt pro ausgebautem Warpfeld.</p>';
+    if(t.upgrade)html+='<p class="build-note">Bestehendes Gebäude: '+BUILDINGS[t.upgrade].name+'. Andere Gebäude sind hier nicht möglich.</p>';
+    html+='<button type="button" class="secondary-btn" id="close-build">SCHLIESSEN</button>';
+    showModal(html);byId("close-build").addEventListener("click",hideModal);
+  }
+  function buildUpgrade(id){
+    if(!humanTurn()||!ownSelection()||!BUILDINGS[id])return;
+    var targets=buildTargets(selected,id,turn),price=targets.length*BUILDINGS[id].cost;
+    if(!targets.length||coins[turn]<price)return;
+    coins[turn]-=price;targets.forEach(function(i){board[i].upgrade=id});
+    inspected=selected;lastMove=selected;sound(630);hideModal();render();showToast(BUILDINGS[id].icon+" "+BUILDINGS[id].name+" gebaut");
+  }
   function scheduleNext(){var token=gameToken,side=turn;setTimeout(function(){if(gameToken===token&&turn===side&&!locked&&!gameOver&&pendingTurn)nextTurn()},390)}
   function nextTurn(){
     if(gameOver||locked)return;
@@ -372,7 +393,7 @@ button{font:inherit;color:inherit;cursor:pointer}
     byId("start-local").addEventListener("click",function(){mode="local";init();hideModal()});
   }
   function rules(){
-    showModal('<div class="eyebrow">SO FUNKTIONIERT ES</div><h1>SPIEL<span>REGELN</span></h1><div class="rules"><div><b>✧ Erobern:</b> Eigenes Feld antippen, dann ein angrenzendes freies Feld. Kostet 1 Aktion.</div><div><b>⚔ Angreifen:</b> Eigenes Feld wählen, Angriff aktivieren, schwächeres feindliches Nachbarfeld erobern. Die Stärke des Angreifers sinkt um 1.</div><div><b>⬡ Verstärken:</b> +1 Stärke für 2 Münzen. Beliebig oft pro Zug möglich, solange Münzen vorhanden sind. Keine Stärkeobergrenze.</div><div><b>⏱ Zugfolge:</b> Blau hat zuerst 1 Eroberung oder Angriff, danach alle jeweils 2. Nur diese beiden Aktionen zählen ins Zuglimit. Münzausgaben sind vorher beliebig möglich. Nach der letzten Kampfaktion wechselt der Zug automatisch.</div><div><b>⛏ Mine:</b> Jede gehaltene Mine bringt 1 Münze pro Runde. Ausbau auf Stufe 2/3/4 für 3/5/8 Münzen, ohne Zugaktion. <b>✦ Schatz:</b> Die erste Eroberung gibt einmalig 5 Münzen.</div><div><b>◆ Sieg:</b> Erobere das gegnerische Hauptquartier oder besitze nach 15 Runden mehr Gesamtstärke (Summe aller eigenen Feldstärken). Keine Siegpunkte.</div></div><button class="primary-btn" id="rules-close">VERSTANDEN</button>');
+    showModal('<div class="eyebrow">SO FUNKTIONIERT ES</div><h1>SPIEL<span>REGELN</span></h1><div class="rules"><div><b>✧ Erobern:</b> Eigenes Feld antippen, dann ein angrenzendes freies Feld. Kostet 1 Aktion.</div><div><b>⚔ Angreifen:</b> Eigenes Feld wählen, Angriff aktivieren, schwächeres feindliches Nachbarfeld erobern. Die Stärke des Angreifers sinkt um 1.</div><div><b>⬡ Verstärken:</b> +1 Stärke für 2 Münzen, ohne Kampfaktion. Auf Warpfeldern werden alle eigenen Warpfelder verstärkt, 2 Münzen pro Feld. Keine Stärkeobergrenze.</div><div><b>⏱ Zugfolge:</b> Blau hat zuerst 1 Eroberung oder Angriff, danach alle jeweils 2. Nur diese beiden Aktionen zählen ins Zuglimit. Münzausgaben sind vorher beliebig möglich. Nach der letzten Kampfaktion wechselt der Zug automatisch.</div><div><b>⛏ Mine:</b> +1 Münze pro Stufe je Zug, ausbaubar auf Stufe 4. <b>✦ Schatz:</b> Erste Eroberung +5 Münzen.</div><div><b>🌀 Warpfelder:</b> Vier auf der Karte, alle eigenen sind miteinander verbunden. Über sie kann man aus der Ferne angreifen oder erobern. Ausbau oder Verstärken wird auf alle kontrollierten Warpfelder übertragen, Kosten je Feld.</div><div><b>⌂ Gebäude:</b> Höchstens eines pro Feld. Festung, Kaserne, Machtzentrum, Schildgenerator und Wachturm, alle für Münzen. Im Baumenü stehen die Effekte und Preise.</div><div><b>◆ Sieg:</b> Erobere das gegnerische Hauptquartier oder besitze nach 15 Runden mehr Gesamtstärke (Summe aller eigenen Feldstärken). Keine Siegpunkte.</div></div><button class="primary-btn" id="rules-close">VERSTANDEN</button>');
     byId("rules-close").addEventListener("click",hideModal);
   }
   els.board.addEventListener("click",function(e){var cell=e.target.closest("[data-i]");if(cell)clickTile(Number(cell.dataset.i))});
@@ -381,6 +402,16 @@ button{font:inherit;color:inherit;cursor:pointer}
   byId("boost").addEventListener("click",function(){chooseAction("boost")});
   byId("mine-upgrade").addEventListener("click",upgradeMine);
   byId("build").addEventListener("click",openBuild);
+  byId("inspect-more").addEventListener("click",function(){
+    if(inspected===null){showToast("Tippe zuerst auf ein Feld.");return}
+    var t=board[inspected],p=getXY(inspected),name=String.fromCharCode(65+p.c)+(p.r+1);
+    var title=t.rock?"Felsen":t.special==="mine"?"Goldmine":t.special==="treasure"?"Schatzfeld":t.special==="warp"?"Warpfeld":t.base?"Hauptquartier":"Normales Feld";
+    var info=t.rock?"Unpassierbar.":t.special==="mine"?"Produziert Münzen pro eigenem Zug. Aktuell Stufe "+t.mineLevel+". Mit Münzen auf Stufe 2, 3 und 4 aufrüstbar.":t.special==="treasure"?"Einmalig 5 Münzen für die Fraktion, die dieses Feld als erste erobert.":t.special==="warp"?"Vier Warpfelder befinden sich auf der Karte. Alle vom selben Spieler kontrollierten Warpfelder sind miteinander verbunden. Über jedes davon lassen sich von einem eigenen Warpfeld aus freie Nachbarfelder aller verbundenen Warpfelder erobern und gegnerische Nachbarfelder angreifen. Wird ein Warpfeld verstärkt oder mit einem Gebäude verbessert, wird dieselbe Verbesserung auf alle kontrollierten Warpfelder übertragen, mit Münzkosten pro betroffenem Feld.": "Normales Gebiet mit Stärke und optional einem Gebäude.";
+    if(t.upgrade)info+=" Vorhandenes Gebäude: "+BUILDINGS[t.upgrade].name+". "+BUILDINGS[t.upgrade].desc+".";
+    var html='<div class="eyebrow">FELD '+name+'</div><h1>'+title.toUpperCase()+'</h1><p>'+info+'</p><button class="primary-btn" id="field-close">VERSTANDEN</button>';
+    showModal(html);byId("field-close").addEventListener("click",hideModal);
+  });
+  els.modal.addEventListener("click",function(e){var b=e.target.closest("[data-build]");if(b&&!b.disabled)buildUpgrade(b.dataset.build)});
   byId("end-turn").addEventListener("click",nextTurn);
   byId("info").addEventListener("click",rules);
   byId("restart").addEventListener("click",welcome);
