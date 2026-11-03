@@ -213,6 +213,12 @@ html,body{height:100%;overflow:hidden}
 .app{gap:2px}
 }
 
+
+/* Make all three selected special field types recognisable before conquest */
+.tile.neutral.mine{background:linear-gradient(145deg,#534524,#2d3443 80%);border:1px solid #d2b45b}
+.tile.neutral.treasure{background:linear-gradient(145deg,#705022,#463220 75%);border:1px solid #ffd06e;box-shadow:0 0 13px #dbab4a42,inset 0 0 0 1px #f2d58231}
+.tile.neutral.warp{background:linear-gradient(145deg,#3d2867,#252d52 80%);border:1px solid #be92ff;box-shadow:0 0 13px #a66ced3d}
+.tile.mine .tile-energy,.tile.treasure .tile-energy,.tile.warp .tile-energy{font-size:clamp(11px,3.5vw,18px);filter:drop-shadow(0 0 5px #ffeb8c88)}
 </style>
 </head>
 <body>
@@ -269,7 +275,7 @@ html,body{height:100%;overflow:hidden}
   };
   function ownSelection(){return selected!==null&&board[selected]&&board[selected].owner===turn}
   function myWarps(side){return board.map(function(t,i){return t.owner===side&&t.special==="warp"?i:-1}).filter(function(i){return i>=0})}
-  function boostPrice(i,side){return BOOST_COST*(board[i].special==="warp"?myWarps(side).length:1)}
+  function boostPrice(i,side){return BOOST_COST}
   function aPower(i){var t=board[i];return t.power+(neighbors(i).some(function(k){return board[k].owner===t.owner&&board[k].upgrade==="hub"})?2:0)}
   function dPower(i){var t=board[i];return t.power+(t.upgrade==="fort"?3:0)+(neighbors(i).some(function(k){return board[k].owner===t.owner&&board[k].upgrade==="shield"})?2:0)}
   function reach(i,type,side){
@@ -316,16 +322,29 @@ html,body{height:100%;overflow:hidden}
       lastMove=from;inspected=from;sound(480);render();return true;
     }
     if(ap<=0||!canMove(side,from,to,type))return false;
-    var target=board[to];
-    if(type==="attack"){if(board[from].upgrade!=="barracks")board[from].power=Math.max(1,board[from].power-1);target.owner=side;target.power=1;sound(310)}
-    else{target.owner=side;target.power=1;sound(720)}
+    var target=board[to],source=board[from],oldPower=source.power;
+    if(type==="attack"){
+      // Resistance reduces the arriving strength. Successful attack refunds its action.
+      // Example: 5 vs 2 => old field 1, newly conquered field 3.
+      var resistance=dPower(to);
+      source.power=1;
+      target.owner=side;target.power=Math.max(1,oldPower-resistance);
+      sound(310);
+    }else{
+      // Peaceful expansion moves the strength along: 5 => 1 + 4.
+      source.power=1;
+      target.owner=side;target.power=Math.max(1,oldPower-1);
+      ap--;
+      sound(720);
+    }
     lastMove=to;inspected=to;
     if(target.special==="treasure"&&!target.claimed){target.claimed=true;coins[side]+=5;showToast("Schatz gefunden: +5 Münzen!")}
-    ap--;
     if(target.base&&target.base!==side){selected=null;render();finish(side,"HQ");return true}
     if(cornersOwned(side)>=3){selected=null;render();finish(side,"corners");return true}
-    if(side===turn){selected=type==="expand"?to:from}
-    render();return true;
+    if(side===turn){selected=to}
+    render();
+    if(type==="attack"&&side===1&&!gameOver)showToast("⚔ Angriff erfolgreich: Kampfaktion zurück!");
+    return true;
   }
   function upgradeMine(){
     if(!humanTurn()||selected===null)return;
@@ -339,8 +358,8 @@ html,body{height:100%;overflow:hidden}
     var html="";
     board.forEach(function(t,i){
       var owner=t.owner===1?"player":t.owner===2?"enemy":"neutral";
-      var cls="tile "+(t.rock?"rock":owner)+(t.special==="warp"?" warp":"")+(corners.includes(i)?" corner":"")+(buildMode&&t.owner===turn?" build-target":"")+(selected===i&&humanTurn()?" selected":"")+(inspected===i&&!pendingTurn?" inspected":"")+(valid.indexOf(i)>=0?" legal":"")+(lastMove===i?" flash":"");
-      var specialIcon=t.special==="mine"?"⛏":t.special==="treasure"?"✦":t.special==="warp"?"🌀":"";
+      var cls="tile "+(t.rock?"rock":owner)+(t.special==="treasure"?" treasure":"")+(t.special==="mine"?" mine":"")+(t.special==="warp"?" warp":"")+(corners.includes(i)?" corner":"")+(buildMode&&t.owner===turn?" build-target":"")+(selected===i&&humanTurn()?" selected":"")+(inspected===i&&!pendingTurn?" inspected":"")+(valid.indexOf(i)>=0?" legal":"")+(lastMove===i?" flash":"");
+      var specialIcon=t.special==="mine"?"⛏":t.special==="treasure"?"🪙":t.special==="warp"?"🌀":"";
       var attackBonus=t.owner?aPower(i)-t.power:0,defenseBonus=t.owner?dPower(i)-t.power:0;
       var powerStyle=attackBonus&&defenseBonus?"bonus-both":attackBonus?"bonus-attack":defenseBonus?"bonus-defense":"";
       var bonusText=attackBonus||defenseBonus?'<span class="tile-bonuses">'+(attackBonus?'<span class="bonus-a">⚔+'+attackBonus+'</span>':"")+(defenseBonus?'<span class="bonus-d">🛡+'+defenseBonus+'</span>':"")+'</span>':"";
@@ -401,7 +420,7 @@ html,body{height:100%;overflow:hidden}
     if(!t){title.textContent="Feld antippen";desc.textContent="Hier werden Spezialboni und Gebäude erklärt.";return}
     var p=getXY(inspected),pos=String.fromCharCode(65+p.c)+(p.r+1);
     title.textContent=pos+" · "+(t.rock?"Felsen":t.owner===0?"Neutral":t.owner===1?"Blau":"Rot")+(t.base?" · Basis":"")+(corners.includes(inspected)?" · 👑 Ecke":"");
-    var bonus=t.special==="mine"?"⛏ Mine Stufe "+t.mineLevel+": +"+t.mineLevel+" Münzen pro Zug. ":t.special==="treasure"?(t.claimed?"✦ Schatz schon eingesammelt. ":"✦ Schatz: einmalig 5 Münzen bei erster Eroberung. "):t.special==="warp"?"🌀 Warpfeld: Alle eigenen Warpfelder sind verbunden. Eroberungen und Angriffe über das Netzwerk. Verstärken und Bauen gelten für alle mit Kosten pro Feld. ":"";
+    var bonus=t.special==="mine"?"⛏ Mine Stufe "+t.mineLevel+": +"+t.mineLevel+" Münzen pro Zug. ":t.special==="treasure"?(t.claimed?"✦ Schatz schon eingesammelt. ":"✦ Schatz: einmalig 5 Münzen bei erster Eroberung. "):t.special==="warp"?"🌀 Warpfeld: Alle eigenen Warpfelder sind verbunden. Angreifen und Erobern über das Netzwerk. Ein Upgrade der Stärke wirkt für 2 Münzen auf alle eigenen Warpfelder. ":"";
     desc.textContent=t.rock?"Unpassierbares Feld.":(corners.includes(inspected)?"👑 Eckfeld: Wer 3 der 4 Ecken kontrolliert, gewinnt sofort. ":"")+bonus+(t.owner?"Stärke "+t.power+", Angriff "+aPower(inspected)+", Verteidigung "+dPower(inspected)+". ":"Freies Feld. ")+(t.upgrade?BUILDINGS[t.upgrade].name+": "+BUILDINGS[t.upgrade].desc+".":"");
   }
   function openBuild(){
@@ -505,7 +524,7 @@ html,body{height:100%;overflow:hidden}
     byId("start-local").addEventListener("click",function(){mode="local";init();hideModal()});
   }
   function rules(){
-    showModal('<div class="eyebrow">SO FUNKTIONIERT ES</div><h1>SPIEL<span>REGELN</span></h1><div class="rules"><div><b>✧ Erobern:</b> Eigenes Feld antippen, dann ein angrenzendes freies Feld. Kostet 1 Aktion.</div><div><b>⚔ Angreifen:</b> Eigenes Feld wählen, Angriff aktivieren, schwächeres feindliches Nachbarfeld erobern. Die Stärke des Angreifers sinkt um 1.</div><div><b>⬡ Verstärken:</b> +1 Stärke für 2 Münzen, ohne Kampfaktion. Auf Warpfeldern werden alle eigenen Warpfelder verstärkt, 2 Münzen pro Feld. Keine Stärkeobergrenze.</div><div><b>⏱ Zugfolge:</b> Blau startet mit einer Kampfaktion, danach haben beide jeweils zwei. Jeder Angriff und jede Eroberung kosten genau eine Kampfaktion. Nach Verbrauch kannst du weiter Münzen ausgeben. Erst mit <b>ZUG BEENDEN</b> wechselt der Spieler.</div><div><b>⛏ Goldminen:</b> Nur Goldminen haben ausbaubare Stufen. Jede Stufe produziert eine Münze mehr pro eigenem Zug. Die Kosten steigen mit jeder Stufe: 3, 6, 10, 15, 21 Münzen usw. Keine feste Stufenobergrenze. <b>✦ Schatz:</b> Erste Eroberung +5 Münzen.</div><div><b>🌀 Warpfelder:</b> Vier auf der Karte, alle eigenen sind miteinander verbunden. Über sie kann man aus der Ferne angreifen oder erobern. Ausbau oder Verstärken wird auf alle kontrollierten Warpfelder übertragen, Kosten je Feld.</div><div><b>⌂ Gebäude:</b> Höchstens eines pro Feld. Festung, Kaserne, Machtzentrum, Schildgenerator und Wachturm, alle für Münzen. Im Baumenü stehen die Effekte und Preise.</div><div><b>👑 Eckensieg:</b> Kontrolliere gleichzeitig 3 der 4 Eckfelder, sofortiger Sieg.</div><div><b>◆ Hauptquartier:</b> Erobere das gegnerische Hauptquartier, sofortiger Sieg.</div><div><b>⏱ 30 Runden:</b> Falls niemand zuvor gewinnt, zählt ausschliesslich die Gesamtstärke aller eigenen Felder. Keine Siegpunkte.</div></div><button class="primary-btn" id="rules-close">VERSTANDEN</button>');
+    showModal('<div class="eyebrow">SO FUNKTIONIERT ES</div><h1>SPIEL<span>REGELN</span></h1><div class="rules"><div><b>✧ Erobern:</b> Stärke wandert mit: Stärke 5 erobert ein freies Feld, das Ausgangsfeld bleibt auf 1, das neue erhält 4. Mit Stärke 1 erhalten beide Felder Stärke 1. Kostet 1 Kampfaktion.</div><div><b>⚔ Angreifen:</b> Gegnerische Verteidigung wird von deiner Stärke abgezogen. Beispiel: Stärke 5 gegen 2 ergibt neues Feld mit Stärke 3, das alte bleibt bei 1. Erfolgreiche Angriffe geben ihre Kampfaktion zurück (Reset).</div><div><b>⬡ Verstärken:</b> +1 Stärke für 2 Münzen, ohne Kampfaktion. Alle eigenen Warpfelder zusammen verstärken kostet ebenfalls nur 2 Münzen. Keine Stärkeobergrenze.</div><div><b>⏱ Zugfolge:</b> Blau startet mit einer Kampfaktion, danach haben beide jeweils zwei. Eine Expansion kostet 1 Kampfaktion. Ein erfolgreicher Angriff gibt diese Aktion sofort zurück (Reset). Nach Verbrauch kannst du weiter Münzen ausgeben. Erst mit <b>ZUG BEENDEN</b> wechselt der Spieler.</div><div><b>⛏ Goldminen:</b> Nur Goldminen haben ausbaubare Stufen. Jede Stufe produziert eine Münze mehr pro eigenem Zug. Die Kosten steigen mit jeder Stufe: 3, 6, 10, 15, 21 Münzen usw. Keine feste Stufenobergrenze. <b>✦ Schatz:</b> Erste Eroberung +5 Münzen.</div><div><b>🌀 Warpfelder:</b> Vier auf der Karte, alle eigenen sind verbunden. Über sie kann man aus der Ferne angreifen oder erobern. Ein Verstärken für 2 Münzen stärkt alle eigenen Warpfelder zugleich. Gebäude werden gespiegelt und kosten weiterhin ihren Gebäudepreis pro gebautem Feld.</div><div><b>⌂ Gebäude:</b> Höchstens eines pro Feld. Festung, Kaserne, Machtzentrum, Schildgenerator und Wachturm, alle für Münzen. Im Baumenü stehen die Effekte und Preise.</div><div><b>👑 Eckensieg:</b> Kontrolliere gleichzeitig 3 der 4 Eckfelder, sofortiger Sieg.</div><div><b>◆ Hauptquartier:</b> Erobere das gegnerische Hauptquartier, sofortiger Sieg.</div><div><b>⏱ 30 Runden:</b> Falls niemand zuvor gewinnt, zählt ausschliesslich die Gesamtstärke aller eigenen Felder. Keine Siegpunkte.</div></div><button class="primary-btn" id="rules-close">VERSTANDEN</button>');
     byId("rules-close").addEventListener("click",hideModal);
   }
   els.board.addEventListener("click",function(e){var cell=e.target.closest("[data-i]");if(cell)clickTile(Number(cell.dataset.i))});
@@ -518,7 +537,7 @@ html,body{height:100%;overflow:hidden}
     if(inspected===null){showToast("Tippe zuerst auf ein Feld.");return}
     var t=board[inspected],p=getXY(inspected),name=String.fromCharCode(65+p.c)+(p.r+1);
     var title=t.rock?"Felsen":corners.includes(inspected)?"Eckfeld":t.special==="mine"?"Goldmine":t.special==="treasure"?"Schatzfeld":t.special==="warp"?"Warpfeld":t.base?"Hauptquartier":"Normales Feld";
-    var info=t.rock?"Unpassierbar.":corners.includes(inspected)?"👑 Wer drei der vier Kartenecken gleichzeitig kontrolliert, gewinnt die Partie sofort. Ecken lassen sich wie normale Felder erobern, angreifen und ausbauen.":t.special==="mine"?"Produziert Münzen pro eigenem Zug. Aktuell Stufe "+t.mineLevel+". Für zunehmend mehr Münzen immer weiter ausbaubar, jede Stufe bringt eine zusätzliche Münze pro eigenem Zug.":t.special==="treasure"?"Einmalig 5 Münzen für die Fraktion, die dieses Feld als erste erobert.":t.special==="warp"?"Vier Warpfelder befinden sich auf der Karte. Alle vom selben Spieler kontrollierten Warpfelder sind miteinander verbunden. Über jedes davon lassen sich von einem eigenen Warpfeld aus freie Nachbarfelder aller verbundenen Warpfelder erobern und gegnerische Nachbarfelder angreifen. Wird ein Warpfeld verstärkt oder mit einem Gebäude verbessert, wird dieselbe Verbesserung auf alle kontrollierten Warpfelder übertragen, mit Münzkosten pro betroffenem Feld.": "Normales Gebiet mit Stärke und optional einem Gebäude.";
+    var info=t.rock?"Unpassierbar.":corners.includes(inspected)?"👑 Wer drei der vier Kartenecken gleichzeitig kontrolliert, gewinnt die Partie sofort. Ecken lassen sich wie normale Felder erobern, angreifen und ausbauen.":t.special==="mine"?"Produziert Münzen pro eigenem Zug. Aktuell Stufe "+t.mineLevel+". Für zunehmend mehr Münzen immer weiter ausbaubar, jede Stufe bringt eine zusätzliche Münze pro eigenem Zug.":t.special==="treasure"?"Einmalig 5 Münzen für die Fraktion, die dieses Feld als erste erobert.":t.special==="warp"?"Vier Warpfelder befinden sich auf der Karte. Alle vom selben Spieler kontrollierten Warpfelder sind miteinander verbunden. Über das Netzwerk kann man weit entfernte Nachbarfelder angreifen oder erobern. Das Verstärken aller eigenen Warpfelder zusammen kostet genau 2 Münzen. Gebäude werden synchron gebaut, zu den angegebenen Gebäudekosten pro Feld.": "Normales Gebiet mit Stärke und optional einem Gebäude.";
     if(t.upgrade)info+=" Vorhandenes Gebäude: "+BUILDINGS[t.upgrade].name+". "+BUILDINGS[t.upgrade].desc+".";
     var html='<div class="eyebrow">FELD '+name+'</div><h1>'+title.toUpperCase()+'</h1><p>'+info+'</p><button class="primary-btn" id="field-close">VERSTANDEN</button>';
     showModal(html);byId("field-close").addEventListener("click",hideModal);
