@@ -290,7 +290,7 @@ button{font:inherit;color:inherit;cursor:pointer}
     var t=board[i];
     if(t.owner===turn){selected=i;inspected=i;render();return}
     if(selected===null){inspected=i;render();showToast("Wähle zuerst eines deiner Felder.");return}
-    if(action==="boost"){showToast("Wähle ein eigenes Feld zum Verstärken.");return}
+    if(action==="boost"){inspected=i;render();return}
     if(!move(turn,selected,i,action)){inspected=i;render();showToast(action==="expand"?"Nur angrenzende freie Felder!":"Angriff nur bei höherer Stärke!");return}
     if(!gameOver&&pendingTurn)scheduleNext();
   }
