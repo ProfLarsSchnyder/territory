@@ -25,7 +25,7 @@ Danach: https://proflarsschnyder.github.io/territory/
 | Gebäude | Wirkung | Münzen |
 | --- | --- | ---: |
 | 🛡 Festung | +3 Verteidigung auf dem Feld | 4 |
-| ⚔ Kaserne | Angriffe vom Feld verbrauchen keine eigene Stärke | 6 |
+| ⚔ Kaserne | Angriffe von diesem Feld verlieren 1 Stärke weniger durch gegnerischen Widerstand | 6 |
 | 🔮 Machtzentrum | +2 Angriff für benachbarte eigene Felder | 7 |
 | 💠 Schildgenerator | +2 Verteidigung für benachbarte eigene Felder | 7 |
 | 🏹 Wachturm | Kann in gerader Linie über zwei Felder angreifen | 6 |
