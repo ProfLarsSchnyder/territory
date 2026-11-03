@@ -134,11 +134,11 @@ button{font:inherit;color:inherit;cursor:pointer}
   <section class="arena">
     <div class="section-head"><b>SEKTOR 07</b><small><span class="live-dot"></span>GEBIETSKONTROLLE</small></div>
     <div class="board-shell"><div id="board" class="board" role="grid" aria-label="Taktisches Spielfeld mit sieben Spalten und acht Reihen"></div></div>
-    <div class="board-meta"><span>◆ Hauptquartier</span><span><strong>ϟ</strong> Energiefeld: +1 Aktion</span><span>▰ Blockiert</span></div>
+    <div class="board-meta"><span>◆ Hauptquartier</span><span><strong>ϟ</strong> Kraftfeld: Stärke 2</span><span>▰ Blockiert</span></div>
   </section>
   <section class="status" id="status"><span class="status-orb"></span><div id="status-text" class="status-text" aria-live="polite">Wähle ein eigenes Feld.</div><div id="ap" class="ap-wrap" aria-label="Aktionspunkte"></div></section>
   <section class="control-panel">
-    <div class="bottom-top"><strong id="turn-label">DEIN ZUG</strong><span id="ap-label">3 AKTIONEN ÜBRIG</span></div>
+    <div class="bottom-top"><strong id="turn-label">DEIN ZUG</strong><span id="ap-label">1 AKTION ÜBRIG</span></div>
     <div class="action-grid">
       <button class="action on" id="expand"><span class="glyph">✧</span><span>Erobern</span></button>
       <button class="action attack" id="attack"><span class="glyph">⚔</span><span>Angreifen</span></button>
@@ -155,7 +155,7 @@ button{font:inherit;color:inherit;cursor:pointer}
   var COLS=7,ROWS=8,MAX_ROUNDS=15,MAX_POWER=5;
   var rocks=[15,19,24,36,40]; // fixed obstacles, symmetric around centre
   var energy=[17,22,33,38];
-  var board=[],mode="ai",turn=1,round=1,ap=3,maxAp=3,selected=null,action="expand";
+  var board=[],mode="ai",turn=1,round=1,ap=1,maxAp=1,selected=null,action="expand";
   var locked=false,gameOver=false,lastMove=-1,mute=true,audio=null,timer=null,gameToken=0;
   var els={board:document.getElementById("board"),overlay:document.getElementById("overlay"),modal:document.getElementById("modal"),toast:document.getElementById("toast")};
   function byId(id){return document.getElementById(id)}
@@ -164,7 +164,6 @@ button{font:inherit;color:inherit;cursor:pointer}
   function distance(a,b){var x=getXY(a),y=getXY(b);return Math.abs(x.r-y.r)+Math.abs(x.c-y.c)}
   function count(side){return board.filter(function(t){return t.owner===side}).length}
   function strengths(side){return board.reduce(function(n,t){return n+(t.owner===side?t.power:0)},0)}
-  function extraAp(side){return board.some(function(t){return t.owner===side&&t.energy})?1:0}
   function playerName(side){return side===1?(mode==="local"?"BLAU":"DU"):(mode==="local"?"ROT":"KI")}
   function humanTurn(){return !locked&&!gameOver&&(turn===1||mode==="local")}
   function showToast(msg){els.toast.textContent=msg;els.toast.classList.add("show");clearTimeout(timer);timer=setTimeout(function(){els.toast.classList.remove("show")},1800)}
@@ -174,7 +173,7 @@ button{font:inherit;color:inherit;cursor:pointer}
     board[12].owner=2;board[12].power=3;board[12].base=2;
     turn=1;round=1;selected=null;action="expand";locked=false;gameOver=false;lastMove=-1;startAp();render();
   }
-  function startAp(){ap=3+extraAp(turn);maxAp=ap}
+  function startAp(){ap=(round===1&&turn===1)?1:2;maxAp=ap}
   function availableTargets(from,type,side){if(from===null||!board[from]||board[from].owner!==side)return[];
     return neighbors(from).filter(function(i){var t=board[i];if(t.rock)return false;if(type==="expand")return t.owner===0;if(type==="attack")return t.owner!==0&&t.owner!==side&&board[from].power>t.power;return false})}
   function canMove(side,from,to,type){return board[from]&&board[from].owner===side&&availableTargets(from,type,side).indexOf(to)>=0}
@@ -183,7 +182,7 @@ button{font:inherit;color:inherit;cursor:pointer}
     if(type==="boost"){if(!board[from]||board[from].owner!==side||board[from].power>=MAX_POWER)return false;board[from].power++;lastMove=from;sound(480)}
     else{if(!canMove(side,from,to,type))return false;
       var target=board[to];if(type==="attack"){board[from].power=Math.max(1,board[from].power-1);target.owner=side;target.power=1;sound(310)}
-      else{target.owner=side;target.power=1;sound(720)}
+      else{target.owner=side;target.power=target.energy?2:1;sound(720)}
       lastMove=to;
       if(target.base&&target.base!==side){ap--;selected=null;render();finish(side,"HQ");return true}
     }
@@ -288,12 +287,12 @@ button{font:inherit;color:inherit;cursor:pointer}
   function showModal(content){els.modal.innerHTML=content;els.overlay.classList.remove("hidden")}
   function hideModal(){els.overlay.classList.add("hidden")}
   function welcome(){
-    showModal('<div class="hero-emblem"><span>T</span></div><div class="eyebrow">CONQUER THE GRID</div><h1>TERRITORY <span>CLASH</span></h1><p>Eine Karte. Zwei Fraktionen. Übernimm das Spielfeld und besiege deinen Gegner in 15 schnellen Runden.</p><div class="hero-facts"><span>✧ Ausbreiten</span><span>⚔ Angreifen</span><span>⬡ Verstärken</span></div><button class="primary-btn" id="start-ai">⚡ GEGEN KI SPIELEN</button><button class="secondary-btn" id="start-local">2 SPIELER · EIN HANDY</button><div class="fine">Tipp: Erobere ϟ Energiefelder für zusätzliche Aktionen.</div>');
+    showModal('<div class="hero-emblem"><span>T</span></div><div class="eyebrow">CONQUER THE GRID</div><h1>TERRITORY <span>CLASH</span></h1><p>Eine Karte. Zwei Fraktionen. Übernimm das Spielfeld und besiege deinen Gegner in 15 schnellen Runden.</p><div class="hero-facts"><span>✧ Ausbreiten</span><span>⚔ Angreifen</span><span>⬡ Verstärken</span></div><button class="primary-btn" id="start-ai">⚡ GEGEN KI SPIELEN</button><button class="secondary-btn" id="start-local">2 SPIELER · EIN HANDY</button><div class="fine">Blau startet mit 1 Aktion. Danach hat jede Seite immer 2 Aktionen.</div>');
     byId("start-ai").addEventListener("click",function(){mode="ai";init();hideModal()});
     byId("start-local").addEventListener("click",function(){mode="local";init();hideModal()});
   }
   function rules(){
-    showModal('<div class="eyebrow">SO FUNKTIONIERT ES</div><h1>SPIEL<span>REGELN</span></h1><div class="rules"><div><b>✧ Erobern:</b> Eigenes Feld antippen, dann ein angrenzendes freies Feld. Kostet 1 Aktion.</div><div><b>⚔ Angreifen:</b> Eigenes Feld wählen, Angriff aktivieren, schwächeres feindliches Nachbarfeld erobern. Die Stärke des Angreifers sinkt um 1.</div><div><b>⬡ Verstärken:</b> Eigenes Feld wählen und auf Verstärken tippen. +1 Stärke bis maximal 5.</div><div><b>◆ Sieg:</b> Erobere das fremde Hauptquartier oder kontrolliere nach 15 Runden mehr Felder. <b>ϟ Energiefeld:</b> Gibt dir 1 zusätzliche Aktion pro Zug, sobald du mindestens eines besitzt.</div></div><button class="primary-btn" id="rules-close">VERSTANDEN</button>');
+    showModal('<div class="eyebrow">SO FUNKTIONIERT ES</div><h1>SPIEL<span>REGELN</span></h1><div class="rules"><div><b>✧ Erobern:</b> Eigenes Feld antippen, dann ein angrenzendes freies Feld. Kostet 1 Aktion.</div><div><b>⚔ Angreifen:</b> Eigenes Feld wählen, Angriff aktivieren, schwächeres feindliches Nachbarfeld erobern. Die Stärke des Angreifers sinkt um 1.</div><div><b>⬡ Verstärken:</b> Eigenes Feld wählen und auf Verstärken tippen. +1 Stärke bis maximal 5.</div><div><b>⏱ Zugfolge:</b> Blau startet mit 1 Aktion, Rot erhält danach 2. Ab dann haben beide abwechselnd immer genau 2 Aktionen. Nach der letzten Aktion wird automatisch gewechselt.</div><div><b>ϟ Kraftfeld:</b> Wenn du ein neutrales Kraftfeld eroberst, beginnt es direkt mit Stärke 2 statt 1. Es gibt niemals zusätzliche Züge.</div><div><b>◆ Sieg:</b> Erobere das fremde Hauptquartier oder kontrolliere nach 15 Runden mehr Felder. Bei gleicher Feldanzahl entscheidet die Gesamtstärke.</div></div><button class="primary-btn" id="rules-close">VERSTANDEN</button>');
     byId("rules-close").addEventListener("click",hideModal);
   }
   els.board.addEventListener("click",function(e){var cell=e.target.closest("[data-i]");if(cell)clickTile(Number(cell.dataset.i))});
