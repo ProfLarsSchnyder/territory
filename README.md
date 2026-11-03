@@ -1,57 +1,41 @@
 # Territory Clash 🎮
 
-Ein Handy-Strategiespiel mit KI-Modus und lokalem Zweispielermodus. Ohne Framework, das Spiel läuft direkt in `index.html`.
+Mobile-First Strategiespiel in einer einzigen `index.html`. Spielbar gegen KI oder zu zweit an einem Handy.
 
-## Auf dem Handy spielen
+## Spielen
 
 GitHub Pages unter **Settings → Pages → Deploy from a branch → main / (root)** aktivieren.
 
-Adresse: https://proflarsschnyder.github.io/territory/
+Danach: https://proflarsschnyder.github.io/territory/
 
-## Zugablauf
+## Die wichtigsten Regeln
 
-1. **Blau beginnt mit einer Kampfaktion.** Danach haben beide Seiten jeweils zwei Kampfaktionen pro Zug.
-2. **Erobern und Angreifen** kosten je eine Kampfaktion. Erfolgreiche Angriffe geben **keine** Aktion zurück.
-3. Auch bei **0 Kampfaktionen** kann man weiterhin für Münzen verstärken, Goldminen ausbauen und Gebäude bauen.
-4. **Erst beim Tippen auf „ZUG BEENDEN“** ist der andere Spieler am Zug. Die KI beendet ihre Züge automatisch.
+**Kampfaktionen:** Blau beginnt mit **1** Eroberung oder Angriff. Danach hat jeder Spieler pro Zug **2** Kampfaktionen. Jede Eroberung eines neutralen Felds und jeder erfolgreiche Angriff kostet exakt **1** Kampfaktion. Ein erfolgreicher Angriff gibt **keine zusätzliche Aktion**. Sobald alle Kampfaktionen verbraucht sind, bleibt der Spieler am Zug und kann weiterhin mit Münzen bauen und verstärken. **Nur der Button «ZUG BEENDEN» wechselt den Spieler.** Die KI beendet ihre Züge selbst.
 
-## Münzen und Feldstärke
+**Stärke und Münzen:** Eigene Felder lassen sich für 2 Münzen um +1 Stärke verstärken, ohne Stärkeobergrenze und ohne Kampfaktionskosten. Ein erfolgreicher Angriff erfordert eine höhere effektive Angriffsstärke als Verteidigungsstärke. Die Stärke des Angreifers sinkt normalerweise um 1. Bonuswerte sind direkt auf den Kacheln sichtbar (⚔ orange, 🛡 türkis, beide violett).
 
-- Münzen sind die einzige Ressource. Beide Seiten beginnen mit **8 Münzen**.
-- Zu Beginn jedes weiteren eigenen Zuges erhält man **2 Münzen Grundeinkommen**, zusätzlich das Einkommen kontrollierter Goldminen.
-- **Verstärken** kostet **2 Münzen** für +1 Stärke und verbraucht keine Kampfaktion. Die Feldstärke hat keine Obergrenze.
-- Beim Angreifen muss die effektive Angriffsstärke die gegnerische Verteidigungsstärke **übertreffen**. Normalerweise sinkt die Stärke des Ausgangsfelds beim Angriff um 1, das eroberte Feld startet mit Stärke 1.
-- Angriffsboni stehen auf den Spielfeldern **orange (⚔)**, Verteidigungsboni **hellblau (🛡)** und bei beiden Bonusarten ist die Stärke **violett**.
+**Goldminen ⛏:** Die einzige Spezialfeldart mit ausbaubaren Stufen. Pro Stufe gibt es 1 Münze pro eigenem Zug. Upgrade-Kosten steigen: **3, 6, 10, 15, 21, ... Münzen**. Minen können über das Feld-Auswahlmenü aufgewertet werden, ohne Kampfaktion. Keine feste Stufenobergrenze.
 
-## Spezialfelder
+**Schatzfelder ✦:** Die erste Eroberung bringt einmalig 5 Münzen. Anschliessende Rückeroberungen bringen nichts.
 
-Aktuell sind **3 von 5 geplanten Spezialfeldtypen** festgelegt und eingebaut:
+**Warpfelder 🌀:** Vier neutral gelegene Warpfelder bilden für jede Fraktion ein Netzwerk. Wenn ein Spieler mehrere Warpfelder kontrolliert, kann er von einem eigenen Warpfeld aus auch Ziele neben den anderen eigenen Warpfeldern erreichen. Eine Verstärkung oder ein Bau auf dem Warpnetz wirkt auf alle betreffenden eigenen Warpfelder, Münzkosten fallen pro Feld an.
 
-- **⛏ Goldmine**: Produziert pro eigenem Zug Münzen entsprechend der Minenstufe. Nur Minen haben ausbaubare Stufen. Upgrade-Kosten steigen: **3, 6, 10, 15, 21 … Münzen** für die Stufen 2, 3, 4, 5, 6 usw. Keine feste Obergrenze.
-- **✦ Schatzfeld**: Die erste Eroberung einer Schatzposition gibt einmalig **5 Münzen**.
-- **🌀 Warpfeld**: Vier Positionen nahe der Kartenmitte. Alle eigenen Warpfelder bilden ein verbundenes Netzwerk. Beim Verstärken werden alle eigenen Warpfelder gleichzeitig verbessert, die Münzkosten fallen pro Feld an. Gebäude werden auf alle noch freien eigenen Warpfelder übertragen und pro Feld bezahlt.
-- Zwei weitere Spezialfeldtypen werden später gemeinsam ausgewählt.
+**Bauen:** Fünf Gebäude verfügbar, **maximal eines pro Feld**. «Bauen» drücken und ein eigenes Feld wählen, oder erst ein eigenes Feld wählen und danach «Bauen» drücken. Das Baumenü zeigt Effekt und Preis. Der Bau kostet nur Münzen, keine Kampfaktion.
 
-## Baubare Gebäude
+| Gebäude | Wirkung | Münzen |
+| --- | --- | ---: |
+| 🛡 Festung | +3 Verteidigung auf dem Feld | 4 |
+| ⚔ Kaserne | Angriffe vom Feld verbrauchen keine eigene Stärke | 6 |
+| 🔮 Machtzentrum | +2 Angriff für benachbarte eigene Felder | 7 |
+| 💠 Schildgenerator | +2 Verteidigung für benachbarte eigene Felder | 7 |
+| 🏹 Wachturm | Kann in gerader Linie über zwei Felder angreifen | 6 |
 
-Im Spiel sind **5 Gebäude**, jeweils maximal **1 Gebäude pro Feld**. Gebäude kosten Münzen, aber keine Kampfaktion:
+## Siegbedingungen
 
-| Gebäude | Preis | Effekt |
-|---|---:|---|
-| 🛡 Festung | 4 | +3 Verteidigung auf dem Feld |
-| ⚔ Kaserne | 6 | Erfolgreiche Angriffe von diesem Feld kosten keine eigene Stärke |
-| 🔮 Machtzentrum | 7 | +2 Angriff auf benachbarten eigenen Feldern |
-| 💠 Schildgenerator | 7 | +2 Verteidigung auf benachbarten eigenen Feldern |
-| 🏹 Wachturm | 6 | Angriffe auf 2 Felder Entfernung in gerader freier Linie |
+1. **Drei der vier Ecken** gleichzeitig kontrollieren, sofortiger Sieg.
+2. **Gegnerisches Hauptquartier** erobern, sofortiger Sieg.
+3. Falls bis zum Ende von **30 Runden** niemand gewinnt, gewinnt die Seite mit der grösseren **Gesamtstärke** aller eigenen Felder. Keine separaten Siegpunkte.
 
-Für die Gebäudeauswahl funktioniert **beide Reihenfolgen**: erst ein eigenes Feld, dann **Bauen**, oder zuerst **Bauen** und danach ein eigenes Feld antippen.
+## Technik und Bedienung
 
-## Drei Siegbedingungen
-
-- **3 Ecken**: Sobald jemand gleichzeitig drei der vier Eckfelder kontrolliert, gewinnt diese Seite sofort.
-- **Hauptquartier**: Die Eroberung der gegnerischen Basis beendet das Spiel sofort.
-- **Nach 30 Runden**: Wenn noch niemand gewonnen hat, zählt ausschliesslich die gesamte Stärke aller eigenen Felder. Bei Gleichstand endet die Partie unentschieden.
-
-## Technik
-
-HTML, CSS und JavaScript. Für schmale und kurze Handybildschirme optimiert, mit Infobereich für Spezialfelder, Touchsteuerung und animiertem Spielfeld. Das Balancing ist weiterhin im Prototyp-Stadium.
+HTML, CSS, Vanilla JavaScript ohne externe Frameworks. Hochformat-Layout, Touch-Steuerung, responsive Kacheln, Feld-Informationsanzeige und optionaler Ton. Die fünf Bauelemente sind einmalige Spezialisierungen, keine ausbaubaren Stufen. Das Spielbalancing ist noch ein Prototyp.
