@@ -168,7 +168,7 @@ button{font:inherit;color:inherit;cursor:pointer}
   var COLS=7,ROWS=8,MAX_ROUNDS=30,BOOST_COST=2;
   var rocks=[15,19,24,31,36,40];
   var mines=[17,38],treasures=[22,33],warps=[16,18,37,39],corners=[0,COLS-1,(ROWS-1)*COLS,ROWS*COLS-1];
-  var board=[],mode="ai",turn=1,round=1,ap=1,maxAp=1,selected=null,inspected=null,action="expand",coins={1:8,2:8};
+  var board=[],mode="ai",turn=1,round=1,ap=1,maxAp=1,selected=null,inspected=null,action="expand",buildMode=false,coins={1:8,2:8};
   var locked=false,pendingTurn=false,gameOver=false,lastMove=-1,mute=true,audio=null,timer=null,gameToken=0,aiHasSpent=false;
   var els={board:document.getElementById("board"),overlay:document.getElementById("overlay"),modal:document.getElementById("modal"),toast:document.getElementById("toast")};
   function byId(id){return document.getElementById(id)}
@@ -210,22 +210,22 @@ button{font:inherit;color:inherit;cursor:pointer}
     return own.filter(function(k){return !board[k].upgrade});
   }
   function income(side){return 2+board.reduce(function(n,t){return n+(t.owner===side&&t.special==="mine"?t.mineLevel:0)},0)}
-  function mineCost(level){return [0,3,5,8][level]||Infinity}
+  function mineCost(level){return (level+1)*(level+2)/2}
   function playerName(side){return side===1?(mode==="local"?"BLAU":"DU"):(mode==="local"?"ROT":"KI")}
-  function humanTurn(){return !locked&&!pendingTurn&&!gameOver&&(turn===1||mode==="local")}
+  function humanTurn(){return !locked&&!gameOver&&(turn===1||mode==="local")}
   function showToast(msg){els.toast.textContent=msg;els.toast.classList.add("show");clearTimeout(timer);timer=setTimeout(function(){els.toast.classList.remove("show")},1800)}
   function sound(freq){if(mute)return;try{audio=audio||new(window.AudioContext||window.webkitAudioContext)();var o=audio.createOscillator(),g=audio.createGain();o.type="sine";o.frequency.setValueAtTime(freq,audio.currentTime);o.frequency.exponentialRampToValueAtTime(freq*.67,audio.currentTime+.13);g.gain.setValueAtTime(.055,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+.18);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+.18)}catch(e){}}
   function init(){gameToken++;board=Array.from({length:COLS*ROWS},function(_,i){return {owner:0,power:0,rock:rocks.indexOf(i)>=0,special:mines.includes(i)?"mine":treasures.includes(i)?"treasure":warps.includes(i)?"warp":null,mineLevel:1,claimed:false,base:0,upgrade:null}});
     board[43].owner=1;board[43].power=3;board[43].base=1;
     board[12].owner=2;board[12].power=3;board[12].base=2;
-    coins={1:8,2:8};turn=1;round=1;selected=null;inspected=null;action="expand";locked=false;pendingTurn=false;gameOver=false;aiHasSpent=false;lastMove=-1;startAp();render();
+    coins={1:8,2:8};turn=1;round=1;selected=null;inspected=null;action="expand";buildMode=false;locked=false;pendingTurn=false;gameOver=false;aiHasSpent=false;lastMove=-1;startAp();render();
   }
   function startAp(){pendingTurn=false;ap=(round===1&&turn===1)?1:2;maxAp=ap;aiHasSpent=false;if(!(round===1&&turn===1))coins[turn]+=income(turn)}
   function availableTargets(from,type,side){if(from===null||!board[from]||board[from].owner!==side)return[];
     return reach(from,type,side).filter(function(i){var t=board[i];if(t.rock)return false;if(type==="expand")return t.owner===0;if(type==="attack")return t.owner!==0&&t.owner!==side&&aPower(from)>dPower(i);return false})}
   function canMove(side,from,to,type){return board[from]&&board[from].owner===side&&availableTargets(from,type,side).indexOf(to)>=0}
   function move(side,from,to,type){
-    if(gameOver||pendingTurn)return false;
+    if(gameOver)return false;
     if(type==="boost"){
       if(!board[from]||board[from].owner!==side||coins[side]<boostPrice(from,side))return false;
       coins[side]-=boostPrice(from,side);
@@ -242,27 +242,28 @@ button{font:inherit;color:inherit;cursor:pointer}
     ap--;
     if(target.base&&target.base!==side){selected=null;render();finish(side,"HQ");return true}
     if(cornersOwned(side)>=3){selected=null;render();finish(side,"corners");return true}
-    if(ap===0){selected=null;pendingTurn=true}
-    else if(side===turn){selected=type==="expand"?to:from}
+    if(side===turn){selected=type==="expand"?to:from}
     render();return true;
   }
   function upgradeMine(){
     if(!humanTurn()||selected===null)return;
     var tile=board[selected];if(tile.owner!==turn||tile.special!=="mine")return;
     var cost=mineCost(tile.mineLevel);
-    if(!isFinite(cost)){showToast("Mine bereits maximal ausgebaut.");return}
     if(coins[turn]<cost){showToast("Nicht genug Münzen für den Minenausbau.");return}
-    coins[turn]-=cost;tile.mineLevel++;inspected=selected;lastMove=selected;sound(650);render();
+    coins[turn]-=cost;tile.mineLevel++;inspected=selected;lastMove=selected;sound(650);render();showToast("Goldmine auf Stufe "+tile.mineLevel+" verbessert!");
   }
   function render(){
-    var valid=humanTurn()&&ap>0?availableTargets(selected,action,turn):[];
+    var valid=humanTurn()&&ap>0&&!buildMode&&action!=="boost"?availableTargets(selected,action,turn):[];
     var html="";
     board.forEach(function(t,i){
       var owner=t.owner===1?"player":t.owner===2?"enemy":"neutral";
-      var cls="tile "+(t.rock?"rock":owner)+(t.special==="warp"?" warp":"")+(corners.includes(i)?" corner":"")+(selected===i&&humanTurn()?" selected":"")+(inspected===i&&!pendingTurn?" inspected":"")+(valid.indexOf(i)>=0?" legal":"")+(lastMove===i?" flash":"");
+      var cls="tile "+(t.rock?"rock":owner)+(t.special==="warp"?" warp":"")+(corners.includes(i)?" corner":"")+(buildMode&&t.owner===turn?" build-target":"")+(selected===i&&humanTurn()?" selected":"")+(inspected===i&&!pendingTurn?" inspected":"")+(valid.indexOf(i)>=0?" legal":"")+(lastMove===i?" flash":"");
       var specialIcon=t.special==="mine"?"⛏":t.special==="treasure"?"✦":t.special==="warp"?"🌀":"";
-      var inside=t.rock?"":'<span class="tile-power">'+(t.owner?t.power:"·")+'</span>'+(specialIcon?'<span class="tile-energy">'+specialIcon+(t.special==="mine"&&t.mineLevel>1?'<sup>'+t.mineLevel+'</sup>':"")+'</span>':"")+(t.base?'<span class="tile-base">◆</span>':"")+(t.upgrade?'<span class="tile-building">'+BUILDINGS[t.upgrade].icon+'</span>':"")+(corners.includes(i)?'<span class="tile-corner">♛</span>':"");
-      var label=t.rock?"Felsen":owner+", Stärke "+t.power+(t.special?", "+(t.special==="mine"?"Mine Stufe "+t.mineLevel:t.special==="warp"?"Warpfeld":"Schatzfeld"):"")+(t.base?", Hauptquartier":"")+(corners.includes(i)?", Eckfeld mit Sofortsieg bei 3 kontrollierten Ecken":"");
+      var attackBonus=t.owner?aPower(i)-t.power:0,defenseBonus=t.owner?dPower(i)-t.power:0;
+      var powerStyle=attackBonus&&defenseBonus?"bonus-both":attackBonus?"bonus-attack":defenseBonus?"bonus-defense":"";
+      var bonusText=attackBonus||defenseBonus?'<span class="tile-bonuses">'+(attackBonus?'<span class="bonus-a">⚔+'+attackBonus+'</span>':"")+(defenseBonus?'<span class="bonus-d">🛡+'+defenseBonus+'</span>':"")+'</span>':"";
+      var inside=t.rock?"":'<span class="tile-power '+powerStyle+'">'+(t.owner?t.power:"·")+'</span>'+(specialIcon?'<span class="tile-energy">'+specialIcon+(t.special==="mine"&&t.mineLevel>1?'<sup>'+t.mineLevel+'</sup>':"")+'</span>':"")+(t.base?'<span class="tile-base">◆</span>':"")+(t.upgrade?'<span class="tile-building">'+BUILDINGS[t.upgrade].icon+'</span>':"")+(corners.includes(i)?'<span class="tile-corner">♛</span>':"")+bonusText;
+      var label=t.rock?"Felsen":owner+", Stärke "+t.power+(t.special?", "+(t.special==="mine"?"Mine Stufe "+t.mineLevel:t.special==="warp"?"Warpfeld":"Schatzfeld"):"")+(t.base?", Hauptquartier":"")+(corners.includes(i)?", Eckfeld mit Sofortsieg bei 3 kontrollierten Ecken":"")+(t.owner?", Angriff "+aPower(i)+", Verteidigung "+dPower(i):"");
       html+='<button type="button" class="'+cls+'" data-i="'+i+'" aria-label="'+label+'" '+''+'>'+inside+'</button>';
     });
     els.board.innerHTML=html;
@@ -274,39 +275,45 @@ button{font:inherit;color:inherit;cursor:pointer}
     byId("status").classList.toggle("enemy-turn",turn===2);
     var st="";
     if(gameOver)st="Partie beendet";
-    else if(pendingTurn)st="Zug abgeschlossen. Gegner ist gleich dran …";
+    else if(buildMode)st="BAUMODUS: Eigenes Feld antippen, Gebäude auswählen.";
     else if(locked)st="Gegner denkt nach ...";
+    else if(ap===0)st="0 Kampfaktionen. Münzen für Bauen, Mine und Verstärken nutzen. Dann Zug beenden.";
     else if(selected===null)st=playerName(turn)+": Wähle eines deiner Felder.";
     else if(action==="expand")st="Tippe auf ein markiertes Nachbarfeld.";
     else if(action==="attack")st="Wähle ein schwächeres gegnerisches Feld.";
     else st="Verstärken kostet 2 Münzen und keine Aktion.";
     byId("status-text").textContent=st;
     byId("ap").innerHTML=Array.from({length:maxAp},function(_,i){return '<span class="ap-pip '+(i<ap?"filled":"")+'"></span>'}).join("");
-    byId("ap-label").textContent=ap+" ZUGAKTION"+(ap===1?"":"EN")+" ÜBRIG";
+    byId("ap-label").textContent=ap?ap+" KAMPFAKTION"+(ap===1?"":"EN")+" ÜBRIG":"0 KAMPFAKTIONEN · MÜNZAKTIONEN MÖGLICH";
     byId("turn-label").textContent=gameOver?"SPIEL BEENDET":locked?"KI DENKT NACH":(turn===1?"BLAU AM ZUG":"ROT AM ZUG");
     ["expand","attack","boost"].forEach(function(type){var b=byId(type);b.classList.toggle("on",action===type);b.disabled=!humanTurn()||(type==="boost"?coins[turn]<BOOST_COST:ap<=0)});
     var mineBtn=byId("mine-upgrade");
     var ownMine=selected!==null&&board[selected].owner===turn&&board[selected].special==="mine"&&humanTurn();
     mineBtn.hidden=!ownMine;
-    if(ownMine){var cost=mineCost(board[selected].mineLevel);mineBtn.textContent=isFinite(cost)?"⛏ Mine verbessern · "+cost+" 🪙":"⛏ Mine Stufe 4 (Max.)";mineBtn.disabled=!isFinite(cost)||coins[turn]<cost}
-    byId("end-turn").disabled=!humanTurn();byId("build").disabled=!humanTurn();byId("boost-cost").textContent=(selected!==null&&board[selected].owner===turn?boostPrice(selected,turn):2)+" 🪙";if(selected!==null&&board[selected].owner===turn&&coins[turn]<boostPrice(selected,turn))byId("boost").disabled=true;renderInspector();
+    if(ownMine){var cost=mineCost(board[selected].mineLevel);mineBtn.textContent="⛏ Mine Stufe "+board[selected].mineLevel+" → "+(board[selected].mineLevel+1)+" · "+cost+" 🪙";mineBtn.disabled=coins[turn]<cost}
+    byId("end-turn").disabled=!humanTurn();byId("build").disabled=!humanTurn();byId("build").classList.toggle("on",buildMode);byId("build").setAttribute("aria-pressed",String(buildMode));byId("boost-cost").textContent=(selected!==null&&board[selected].owner===turn?boostPrice(selected,turn):2)+" 🪙";if(selected!==null&&board[selected].owner===turn&&coins[turn]<boostPrice(selected,turn))byId("boost").disabled=true;renderInspector();
   }
   function clickTile(i){
     if(!humanTurn()){inspected=i;render();return}
     var t=board[i];
-    if(t.owner===turn){selected=i;inspected=i;render();return}
+    if(t.owner===turn){
+      selected=i;inspected=i;
+      if(buildMode){buildMode=false;action="expand";render();showBuildMenu()}
+      else{render();if(action==="boost")showToast("Verstärken kostet "+boostPrice(i,turn)+" Münzen.")}
+      return;
+    }
     if(selected===null){inspected=i;render();showToast("Wähle zuerst eines deiner Felder.");return}
     if(action==="boost"){inspected=i;render();return}
     if(!move(turn,selected,i,action)){inspected=i;render();showToast(action==="expand"?"Nur angrenzende freie Felder!":"Angriff nur bei höherer Stärke!");return}
-    if(!gameOver&&pendingTurn)scheduleNext();
+    
   }
   function boost(){
     if(!humanTurn())return;
-    action="boost";
+    buildMode=false;action="boost";
     if(selected===null){showToast("Wähle zuerst ein eigenes Feld.");render();return}
     if(!move(turn,selected,null,"boost")){showToast("Verstärken kostet "+boostPrice(selected,turn)+" Münzen.");render();return}
   }
-  function chooseAction(a){if(!humanTurn())return;if(a==="boost"){boost();return}action=a;render()}
+  function chooseAction(a){if(!humanTurn())return;buildMode=false;if(a==="boost"){boost();return}action=a;render()}
   function renderInspector(){
     var t=inspected===null?null:board[inspected],title=byId("inspect-title"),desc=byId("inspect-desc");
     if(!t){title.textContent="Feld antippen";desc.textContent="Hier werden Spezialboni und Gebäude erklärt.";return}
@@ -317,7 +324,15 @@ button{font:inherit;color:inherit;cursor:pointer}
   }
   function openBuild(){
     if(!humanTurn())return;
-    if(!ownSelection()){showToast("Wähle zuerst ein eigenes Feld, dann BAUEN.");return}
+    if(!ownSelection()){
+      buildMode=true;action="build";selected=null;render();
+      showToast("Baumodus: Jetzt ein eigenes Feld antippen.");
+      return;
+    }
+    buildMode=false;action="expand";render();showBuildMenu();
+  }
+  function showBuildMenu(){
+    if(!humanTurn()||!ownSelection())return;
     var t=board[selected],p=getXY(selected),pos=String.fromCharCode(65+p.c)+(p.r+1);
     var html='<div class="eyebrow">WERKSTATT · '+pos+'</div><h1>GEBÄUDE <span>BAUEN</span></h1><p>🪙 Guthaben: '+coins[turn]+'. Pro Feld ist genau ein Gebäude erlaubt. Bauen verbraucht keine Kampfaktion.</p>';
     html+='<div class="build-list">'+Object.keys(BUILDINGS).map(function(id){
@@ -333,13 +348,12 @@ button{font:inherit;color:inherit;cursor:pointer}
     if(!humanTurn()||!ownSelection()||!BUILDINGS[id])return;
     var targets=buildTargets(selected,id,turn),price=targets.length*BUILDINGS[id].cost;
     if(!targets.length||coins[turn]<price)return;
-    coins[turn]-=price;targets.forEach(function(i){board[i].upgrade=id});
+    coins[turn]-=price;targets.forEach(function(i){board[i].upgrade=id});buildMode=false;action="expand";
     inspected=selected;lastMove=selected;sound(630);hideModal();render();showToast(BUILDINGS[id].icon+" "+BUILDINGS[id].name+" gebaut");
   }
-  function scheduleNext(){var token=gameToken,side=turn;setTimeout(function(){if(gameToken===token&&turn===side&&!locked&&!gameOver&&pendingTurn)nextTurn()},390)}
   function nextTurn(){
     if(gameOver||locked)return;
-    selected=null;action="expand";
+    selected=null;inspected=null;action="expand";buildMode=false;
     if(turn===1){turn=2;startAp();if(mode==="ai"){locked=true;render();var token=gameToken;setTimeout(function(){if(gameToken===token)aiStep()},520)}else render()}
     else{round++;if(round>MAX_ROUNDS){endByScore();return}turn=1;startAp();render()}
   }
@@ -381,7 +395,7 @@ button{font:inherit;color:inherit;cursor:pointer}
   function aiSpend(){
     if(aiHasSpent)return;aiHasSpent=true;
     var minesOwned=board.filter(function(t){return t.owner===2&&t.special==="mine"});
-    for(var m of minesOwned){var cost=mineCost(m.mineLevel);if(round<22&&isFinite(cost)&&coins[2]>=cost+2){coins[2]-=cost;m.mineLevel++}}
+    for(var m of minesOwned){var cost=mineCost(m.mineLevel);if(round<24&&coins[2]>=cost+4){coins[2]-=cost;m.mineLevel++}}
     var candidates=board.map(function(t,i){return {t:t,i:i}}).filter(function(x){return x.t.owner===2})
       .sort(function(a,b){var sa=neighbors(a.i).filter(function(j){return !board[j].rock&&board[j].owner!==2}).length,sb=neighbors(b.i).filter(function(j){return !board[j].rock&&board[j].owner!==2}).length;return sb-sa});
     var buys=0;
@@ -409,7 +423,7 @@ button{font:inherit;color:inherit;cursor:pointer}
     byId("start-local").addEventListener("click",function(){mode="local";init();hideModal()});
   }
   function rules(){
-    showModal('<div class="eyebrow">SO FUNKTIONIERT ES</div><h1>SPIEL<span>REGELN</span></h1><div class="rules"><div><b>✧ Erobern:</b> Eigenes Feld antippen, dann ein angrenzendes freies Feld. Kostet 1 Aktion.</div><div><b>⚔ Angreifen:</b> Eigenes Feld wählen, Angriff aktivieren, schwächeres feindliches Nachbarfeld erobern. Die Stärke des Angreifers sinkt um 1.</div><div><b>⬡ Verstärken:</b> +1 Stärke für 2 Münzen, ohne Kampfaktion. Auf Warpfeldern werden alle eigenen Warpfelder verstärkt, 2 Münzen pro Feld. Keine Stärkeobergrenze.</div><div><b>⏱ Zugfolge:</b> Blau hat zuerst 1 Eroberung oder Angriff, danach alle jeweils 2. Nur diese beiden Aktionen zählen ins Zuglimit. Münzausgaben sind vorher beliebig möglich. Nach der letzten Kampfaktion wechselt der Zug automatisch.</div><div><b>⛏ Mine:</b> +1 Münze pro Stufe je Zug, ausbaubar auf Stufe 4. <b>✦ Schatz:</b> Erste Eroberung +5 Münzen.</div><div><b>🌀 Warpfelder:</b> Vier auf der Karte, alle eigenen sind miteinander verbunden. Über sie kann man aus der Ferne angreifen oder erobern. Ausbau oder Verstärken wird auf alle kontrollierten Warpfelder übertragen, Kosten je Feld.</div><div><b>⌂ Gebäude:</b> Höchstens eines pro Feld. Festung, Kaserne, Machtzentrum, Schildgenerator und Wachturm, alle für Münzen. Im Baumenü stehen die Effekte und Preise.</div><div><b>👑 Eckensieg:</b> Kontrolliere gleichzeitig 3 der 4 Eckfelder, sofortiger Sieg.</div><div><b>◆ Hauptquartier:</b> Erobere das gegnerische Hauptquartier, sofortiger Sieg.</div><div><b>⏱ 30 Runden:</b> Falls niemand zuvor gewinnt, zählt ausschliesslich die Gesamtstärke aller eigenen Felder. Keine Siegpunkte.</div></div><button class="primary-btn" id="rules-close">VERSTANDEN</button>');
+    showModal('<div class="eyebrow">SO FUNKTIONIERT ES</div><h1>SPIEL<span>REGELN</span></h1><div class="rules"><div><b>✧ Erobern:</b> Eigenes Feld antippen, dann ein angrenzendes freies Feld. Kostet 1 Aktion.</div><div><b>⚔ Angreifen:</b> Eigenes Feld wählen, Angriff aktivieren, schwächeres feindliches Nachbarfeld erobern. Die Stärke des Angreifers sinkt um 1.</div><div><b>⬡ Verstärken:</b> +1 Stärke für 2 Münzen, ohne Kampfaktion. Auf Warpfeldern werden alle eigenen Warpfelder verstärkt, 2 Münzen pro Feld. Keine Stärkeobergrenze.</div><div><b>⏱ Zugfolge:</b> Blau startet mit einer Kampfaktion, danach haben beide jeweils zwei. Jeder Angriff und jede Eroberung kosten genau eine Kampfaktion. Nach Verbrauch kannst du weiter Münzen ausgeben. Erst mit <b>ZUG BEENDEN</b> wechselt der Spieler.</div><div><b>⛏ Goldminen:</b> Nur Goldminen haben ausbaubare Stufen. Jede Stufe produziert eine Münze mehr pro eigenem Zug. Die Kosten steigen mit jeder Stufe: 3, 6, 10, 15, 21 Münzen usw. Keine feste Stufenobergrenze. <b>✦ Schatz:</b> Erste Eroberung +5 Münzen.</div><div><b>🌀 Warpfelder:</b> Vier auf der Karte, alle eigenen sind miteinander verbunden. Über sie kann man aus der Ferne angreifen oder erobern. Ausbau oder Verstärken wird auf alle kontrollierten Warpfelder übertragen, Kosten je Feld.</div><div><b>⌂ Gebäude:</b> Höchstens eines pro Feld. Festung, Kaserne, Machtzentrum, Schildgenerator und Wachturm, alle für Münzen. Im Baumenü stehen die Effekte und Preise.</div><div><b>👑 Eckensieg:</b> Kontrolliere gleichzeitig 3 der 4 Eckfelder, sofortiger Sieg.</div><div><b>◆ Hauptquartier:</b> Erobere das gegnerische Hauptquartier, sofortiger Sieg.</div><div><b>⏱ 30 Runden:</b> Falls niemand zuvor gewinnt, zählt ausschliesslich die Gesamtstärke aller eigenen Felder. Keine Siegpunkte.</div></div><button class="primary-btn" id="rules-close">VERSTANDEN</button>');
     byId("rules-close").addEventListener("click",hideModal);
   }
   els.board.addEventListener("click",function(e){var cell=e.target.closest("[data-i]");if(cell)clickTile(Number(cell.dataset.i))});
@@ -422,7 +436,7 @@ button{font:inherit;color:inherit;cursor:pointer}
     if(inspected===null){showToast("Tippe zuerst auf ein Feld.");return}
     var t=board[inspected],p=getXY(inspected),name=String.fromCharCode(65+p.c)+(p.r+1);
     var title=t.rock?"Felsen":corners.includes(inspected)?"Eckfeld":t.special==="mine"?"Goldmine":t.special==="treasure"?"Schatzfeld":t.special==="warp"?"Warpfeld":t.base?"Hauptquartier":"Normales Feld";
-    var info=t.rock?"Unpassierbar.":corners.includes(inspected)?"👑 Wer drei der vier Kartenecken gleichzeitig kontrolliert, gewinnt die Partie sofort. Ecken lassen sich wie normale Felder erobern, angreifen und ausbauen.":t.special==="mine"?"Produziert Münzen pro eigenem Zug. Aktuell Stufe "+t.mineLevel+". Mit Münzen auf Stufe 2, 3 und 4 aufrüstbar.":t.special==="treasure"?"Einmalig 5 Münzen für die Fraktion, die dieses Feld als erste erobert.":t.special==="warp"?"Vier Warpfelder befinden sich auf der Karte. Alle vom selben Spieler kontrollierten Warpfelder sind miteinander verbunden. Über jedes davon lassen sich von einem eigenen Warpfeld aus freie Nachbarfelder aller verbundenen Warpfelder erobern und gegnerische Nachbarfelder angreifen. Wird ein Warpfeld verstärkt oder mit einem Gebäude verbessert, wird dieselbe Verbesserung auf alle kontrollierten Warpfelder übertragen, mit Münzkosten pro betroffenem Feld.": "Normales Gebiet mit Stärke und optional einem Gebäude.";
+    var info=t.rock?"Unpassierbar.":corners.includes(inspected)?"👑 Wer drei der vier Kartenecken gleichzeitig kontrolliert, gewinnt die Partie sofort. Ecken lassen sich wie normale Felder erobern, angreifen und ausbauen.":t.special==="mine"?"Produziert Münzen pro eigenem Zug. Aktuell Stufe "+t.mineLevel+". Für zunehmend mehr Münzen immer weiter ausbaubar, jede Stufe bringt eine zusätzliche Münze pro eigenem Zug.":t.special==="treasure"?"Einmalig 5 Münzen für die Fraktion, die dieses Feld als erste erobert.":t.special==="warp"?"Vier Warpfelder befinden sich auf der Karte. Alle vom selben Spieler kontrollierten Warpfelder sind miteinander verbunden. Über jedes davon lassen sich von einem eigenen Warpfeld aus freie Nachbarfelder aller verbundenen Warpfelder erobern und gegnerische Nachbarfelder angreifen. Wird ein Warpfeld verstärkt oder mit einem Gebäude verbessert, wird dieselbe Verbesserung auf alle kontrollierten Warpfelder übertragen, mit Münzkosten pro betroffenem Feld.": "Normales Gebiet mit Stärke und optional einem Gebäude.";
     if(t.upgrade)info+=" Vorhandenes Gebäude: "+BUILDINGS[t.upgrade].name+". "+BUILDINGS[t.upgrade].desc+".";
     var html='<div class="eyebrow">FELD '+name+'</div><h1>'+title.toUpperCase()+'</h1><p>'+info+'</p><button class="primary-btn" id="field-close">VERSTANDEN</button>';
     showModal(html);byId("field-close").addEventListener("click",hideModal);
