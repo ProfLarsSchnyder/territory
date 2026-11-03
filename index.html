@@ -156,7 +156,7 @@ button{font:inherit;color:inherit;cursor:pointer}
   var rocks=[15,19,24,36,40]; // fixed obstacles, symmetric around centre
   var energy=[17,22,33,38];
   var board=[],mode="ai",turn=1,round=1,ap=3,maxAp=3,selected=null,action="expand";
-  var locked=false,gameOver=false,lastMove=-1,mute=true,audio=null,timer=null;
+  var locked=false,gameOver=false,lastMove=-1,mute=true,audio=null,timer=null,gameToken=0;
   var els={board:document.getElementById("board"),overlay:document.getElementById("overlay"),modal:document.getElementById("modal"),toast:document.getElementById("toast")};
   function byId(id){return document.getElementById(id)}
   function getXY(i){return {r:Math.floor(i/COLS),c:i%COLS}}
@@ -169,7 +169,7 @@ button{font:inherit;color:inherit;cursor:pointer}
   function humanTurn(){return !locked&&!gameOver&&(turn===1||mode==="local")}
   function showToast(msg){els.toast.textContent=msg;els.toast.classList.add("show");clearTimeout(timer);timer=setTimeout(function(){els.toast.classList.remove("show")},1800)}
   function sound(freq){if(mute)return;try{audio=audio||new(window.AudioContext||window.webkitAudioContext)();var o=audio.createOscillator(),g=audio.createGain();o.type="sine";o.frequency.setValueAtTime(freq,audio.currentTime);o.frequency.exponentialRampToValueAtTime(freq*.67,audio.currentTime+.13);g.gain.setValueAtTime(.055,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+.18);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+.18)}catch(e){}}
-  function init(){board=Array.from({length:COLS*ROWS},function(_,i){return {owner:0,power:0,rock:rocks.indexOf(i)>=0,energy:energy.indexOf(i)>=0,base:0}});
+  function init(){gameToken++;board=Array.from({length:COLS*ROWS},function(_,i){return {owner:0,power:0,rock:rocks.indexOf(i)>=0,energy:energy.indexOf(i)>=0,base:0}});
     board[43].owner=1;board[43].power=3;board[43].base=1;
     board[12].owner=2;board[12].power=3;board[12].base=2;
     turn=1;round=1;selected=null;action="expand";locked=false;gameOver=false;lastMove=-1;startAp();render();
@@ -225,24 +225,25 @@ button{font:inherit;color:inherit;cursor:pointer}
   function clickTile(i){
     if(!humanTurn())return;
     var t=board[i];
-    if(t.owner===turn){selected=i;render();if(action==="boost")boost();return}
+    if(t.owner===turn){selected=i;render();return}
     if(selected===null){showToast("Wähle zuerst eines deiner Felder.");return}
     if(action==="boost"){showToast("Wähle ein eigenes Feld zum Verstärken.");return}
     if(!move(turn,selected,i,action)){showToast(action==="expand"?"Nur angrenzende freie Felder!":"Angriff nur von stärkerem Nachbarfeld!");return}
-    if(!gameOver&&ap<=0)setTimeout(nextTurn,390);
+    if(!gameOver&&ap<=0)scheduleNext();
   }
   function boost(){
     if(!humanTurn())return;
     action="boost";
     if(selected===null){showToast("Wähle zuerst ein eigenes Feld.");render();return}
     if(!move(turn,selected,null,"boost")){showToast("Maximale Stärke bereits erreicht!");render();return}
-    if(ap<=0)setTimeout(nextTurn,390);
+    if(ap<=0)scheduleNext();
   }
   function chooseAction(a){if(!humanTurn())return;if(a==="boost"){boost();return}action=a;render()}
+  function scheduleNext(){var token=gameToken,side=turn;setTimeout(function(){if(gameToken===token&&turn===side&&!locked&&!gameOver&&ap<=0)nextTurn()},390)}
   function nextTurn(){
     if(gameOver||locked)return;
     selected=null;action="expand";
-    if(turn===1){turn=2;startAp();if(mode==="ai"){locked=true;render();setTimeout(aiStep,520)}else render()}
+    if(turn===1){turn=2;startAp();if(mode==="ai"){locked=true;render();var token=gameToken;setTimeout(function(){if(gameToken===token)aiStep()},520)}else render()}
     else{round++;if(round>MAX_ROUNDS){endByScore();return}turn=1;startAp();render()}
   }
   function endByScore(){
@@ -282,7 +283,7 @@ button{font:inherit;color:inherit;cursor:pointer}
     if(ap<=0||!best){locked=false;nextTurn();return}
     move(2,best.from,best.to,best.type);
     if(gameOver)return;
-    setTimeout(aiStep,410);
+    var token=gameToken;setTimeout(function(){if(gameToken===token)aiStep()},410);
   }
   function showModal(content){els.modal.innerHTML=content;els.overlay.classList.remove("hidden")}
   function hideModal(){els.overlay.classList.add("hidden")}
