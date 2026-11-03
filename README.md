@@ -1,33 +1,57 @@
 # Territory Clash 🎮
 
-Ein mobiles Strategiespiel mit KI und lokalem Zweispielermodus. Komplett ohne Framework, der Spielcode liegt in `index.html`.
+Ein Handy-Strategiespiel mit KI-Modus und lokalem Zweispielermodus. Ohne Framework, das Spiel läuft direkt in `index.html`.
 
-## Online spielen
+## Auf dem Handy spielen
 
-GitHub Pages in **Settings → Pages → Deploy from a branch → main / (root)** aktivieren.
+GitHub Pages unter **Settings → Pages → Deploy from a branch → main / (root)** aktivieren.
 
-Nach der Veröffentlichung: https://proflarsschnyder.github.io/territory/
+Adresse: https://proflarsschnyder.github.io/territory/
 
-## Aktuelles Regelwerk
+## Zugablauf
 
-- **Runden**: Blau beginnt die Partie mit 1 Kampfaktion, danach erhalten Rot und Blau abwechselnd jeweils 2 Kampfaktionen pro Zug.
-- **Kampfaktionen**: Ein angrenzendes neutrales Feld erobern oder ein angrenzendes schwächeres gegnerisches Feld angreifen. Nur diese Aktionen zählen zum Zuglimit. Nach Verbrauch aller Kampfaktionen erfolgt automatisch der Spielerwechsel.
-- **Stärke**: Jedes Feld besitzt eine Stärke. Beim Angriff muss die Stärke des Angreifers diejenige des Ziels übertreffen. Der Angreifer verliert 1 Stärke, das eroberte Feld beginnt mit Stärke 1.
-- **Münzen**: Beide starten mit 8 Münzen und erhalten ab ihrem nächsten Zug 2 Münzen Grundeinkommen je Zug. Münzen sind die einzige Ressource.
-- **Verstärken**: Eigenes Feld auswählen, dann **Verstärken**. Jede Verstärkung kostet 2 Münzen und gibt +1 Stärke. Es gibt weder ein Stärkelimit noch ein Limit für solche Käufe je Zug, nur der Münzvorrat begrenzt sie.
-- **Mine (⛏)**: Bringt jede eigene Runde Münzen, anfänglich 1 pro Zug. Die Mine kann bis Stufe 4 ausgebaut werden. Kosten für die Stufen 2, 3, 4: 3, 5, 8 Münzen. Der Ausbau verbraucht keine Kampfaktion.
-- **Schatz (✦)**: Bringt bei der ersten Eroberung 5 Münzen, unabhängig davon, wer ihn zuerst entdeckt. Anschliessende Rückeroberungen zahlen nicht erneut.
-- **Sieg**: Wer das gegnerische Hauptquartier erobert, gewinnt sofort. Ansonsten gewinnt nach 15 Runden die Seite mit der höheren **Gesamtstärke** (Summe aller eigenen Feldstärken). Gleichstand ergibt Unentschieden. Keine separaten Siegpunkte.
+1. **Blau beginnt mit einer Kampfaktion.** Danach haben beide Seiten jeweils zwei Kampfaktionen pro Zug.
+2. **Erobern und Angreifen** kosten je eine Kampfaktion. Erfolgreiche Angriffe geben **keine** Aktion zurück.
+3. Auch bei **0 Kampfaktionen** kann man weiterhin für Münzen verstärken, Goldminen ausbauen und Gebäude bauen.
+4. **Erst beim Tippen auf „ZUG BEENDEN“** ist der andere Spieler am Zug. Die KI beendet ihre Züge automatisch.
 
-## Spielmodi
+## Münzen und Feldstärke
 
-- Gegen die einfache KI
-- Zwei Spieler auf demselben Handy
+- Münzen sind die einzige Ressource. Beide Seiten beginnen mit **8 Münzen**.
+- Zu Beginn jedes weiteren eigenen Zuges erhält man **2 Münzen Grundeinkommen**, zusätzlich das Einkommen kontrollierter Goldminen.
+- **Verstärken** kostet **2 Münzen** für +1 Stärke und verbraucht keine Kampfaktion. Die Feldstärke hat keine Obergrenze.
+- Beim Angreifen muss die effektive Angriffsstärke die gegnerische Verteidigungsstärke **übertreffen**. Normalerweise sinkt die Stärke des Ausgangsfelds beim Angriff um 1, das eroberte Feld startet mit Stärke 1.
+- Angriffsboni stehen auf den Spielfeldern **orange (⚔)**, Verteidigungsboni **hellblau (🛡)** und bei beiden Bonusarten ist die Stärke **violett**.
 
-## Noch in Diskussion, nicht implementiert
+## Spezialfelder
 
-Baubare Upgrades: Festung, Kaserne, Machtzentrum, Schildgenerator und ein noch auszuwählendes Reichweitenupgrade. Weitere Spezialfelder werden erst nach der Auswahl ergänzt.
+Aktuell sind **3 von 5 geplanten Spezialfeldtypen** festgelegt und eingebaut:
+
+- **⛏ Goldmine**: Produziert pro eigenem Zug Münzen entsprechend der Minenstufe. Nur Minen haben ausbaubare Stufen. Upgrade-Kosten steigen: **3, 6, 10, 15, 21 … Münzen** für die Stufen 2, 3, 4, 5, 6 usw. Keine feste Obergrenze.
+- **✦ Schatzfeld**: Die erste Eroberung einer Schatzposition gibt einmalig **5 Münzen**.
+- **🌀 Warpfeld**: Vier Positionen nahe der Kartenmitte. Alle eigenen Warpfelder bilden ein verbundenes Netzwerk. Beim Verstärken werden alle eigenen Warpfelder gleichzeitig verbessert, die Münzkosten fallen pro Feld an. Gebäude werden auf alle noch freien eigenen Warpfelder übertragen und pro Feld bezahlt.
+- Zwei weitere Spezialfeldtypen werden später gemeinsam ausgewählt.
+
+## Baubare Gebäude
+
+Im Spiel sind **5 Gebäude**, jeweils maximal **1 Gebäude pro Feld**. Gebäude kosten Münzen, aber keine Kampfaktion:
+
+| Gebäude | Preis | Effekt |
+|---|---:|---|
+| 🛡 Festung | 4 | +3 Verteidigung auf dem Feld |
+| ⚔ Kaserne | 6 | Erfolgreiche Angriffe von diesem Feld kosten keine eigene Stärke |
+| 🔮 Machtzentrum | 7 | +2 Angriff auf benachbarten eigenen Feldern |
+| 💠 Schildgenerator | 7 | +2 Verteidigung auf benachbarten eigenen Feldern |
+| 🏹 Wachturm | 6 | Angriffe auf 2 Felder Entfernung in gerader freier Linie |
+
+Für die Gebäudeauswahl funktioniert **beide Reihenfolgen**: erst ein eigenes Feld, dann **Bauen**, oder zuerst **Bauen** und danach ein eigenes Feld antippen.
+
+## Drei Siegbedingungen
+
+- **3 Ecken**: Sobald jemand gleichzeitig drei der vier Eckfelder kontrolliert, gewinnt diese Seite sofort.
+- **Hauptquartier**: Die Eroberung der gegnerischen Basis beendet das Spiel sofort.
+- **Nach 30 Runden**: Wenn noch niemand gewonnen hat, zählt ausschliesslich die gesamte Stärke aller eigenen Felder. Bei Gleichstand endet die Partie unentschieden.
 
 ## Technik
 
-HTML, CSS, Vanilla JavaScript. Mobile-First im Hochformat mit Touch-Steuerung.
+HTML, CSS und JavaScript. Für schmale und kurze Handybildschirme optimiert, mit Infobereich für Spezialfelder, Touchsteuerung und animiertem Spielfeld. Das Balancing ist weiterhin im Prototyp-Stadium.
